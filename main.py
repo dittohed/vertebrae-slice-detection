@@ -38,6 +38,6 @@ if __name__ == '__main__':
         history = model.fit(gen_train, validation_data=gen_val,
                         epochs=config.NUM_EPOCHS, 
                         callbacks=callbacks.get_callbacks(experiment[1]) + \
-                                  [callbacks.PreviewOutput(x_val[:8], y_val[:8])])
+                                  [callbacks.PreviewOutput(x_val[:8], y_val[:8], experiment[1])])
         utils.plot_learning(history, experiment[1])
-        print(f'Median of error (mm): {utils.median(model, gen_val)}')
+        print(f'Median of error (mm): {utils.median(model, x_val, y_val)}')

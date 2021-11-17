@@ -20,7 +20,7 @@ BATCH_SIZE = 8
 ANYWHERE_RATE = 0.5 # prawdopodobieństwo, że wycinek na pewno bedzię zawierał krąg
 X_DIST = 10 # maksymalna odległość środka wycinka od środka obrazu
 OPTIMIZER = 'adam'
-NUM_EPOCHS = 5 # change to 50!
+NUM_EPOCHS = 1 # change to 50!
 
 INPUT_SHAPE = (256, 384, 1)
 

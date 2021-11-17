@@ -32,10 +32,11 @@ class PreviewOutput(Callback):
     on each epoch end.
     """
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, subdir):
         super().__init__()
         self.x = x
         self.y = y
+        self.subdir = subdir
 
     def on_epoch_end(self, epoch, logs=None):
         print('Saving output preview...')
@@ -62,7 +63,7 @@ class PreviewOutput(Callback):
                 img[np.argmax(y_true), :, 1] = 255
 
             path = os.path.join(config.OUTPUT_PATH, 'preview_output', 
-                                              f'epoch_{epoch}')
+                                              self.subdir, f'epoch_{epoch}')
             if not os.path.exists(path):
                 os.makedirs(path)
 

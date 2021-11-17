@@ -193,17 +193,22 @@ def plot_learning(history, plot_name):
     plt.savefig(os.path.join(config.FIGURES_PATH, f'{plot_name}.png'))
     plt.close()
 
-def median(model, gen):
+def median(model, x, y_true):
     """
     Calculates and returns median of error 
     given trained model and instance of InferenceDataGenerator.
     """
 
-    y_pred = model.predict(gen)
+    # doing loop due to different img sizes
+    y_pred = []
+    for img in x:
+        y_pred.append(model.predict(np.expand_dims(img, axis=0)))
+    y_pred = np.array(y_pred)
     y_pred = np.argmax(y_pred, axis=1)
+    print(y_pred.shape)
 
-    y_true = gen.y
-    y_true = np.argmax(y_true, axis=0)
+    y_true = np.argmax(y_true, axis=0) # no batch dimension
+    print(y_true.shape)
 
     errors = np.abs(y_pred-y_true)
 
