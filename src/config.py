@@ -3,7 +3,7 @@ import os
 # paths
 DATA_PATH = os.path.join(os.path.curdir, 'data')
 OUTPUT_PATH = os.path.join(os.path.curdir, 'output')
-CHECKPOINT_PATH = os.path.join(os.path.curdir, 'checkpoint')
+CHECKPOINT_PATH = os.path.join(os.path.curdir, 'checkpoints')
 FIGURES_PATH = os.path.join(os.path.curdir, 'figures')
 LOGS_PATH = os.path.join(os.path.curdir, 'logs')
 
