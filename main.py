@@ -28,7 +28,8 @@ if __name__ == '__main__':
 
         gen_train = generator.DataGenerator(x_train, y_train, 
                                 input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
-        gen_val = generator.InferenceDataGenerator(x_val, y_val)
+        gen_val = generator.DataGenerator(x_val, y_val, validation=True,
+                                input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
 
         # for i, (x, y) in enumerate(gen_train):
         #     if i == len(gen_train):

@@ -199,17 +199,20 @@ def median(model, x, y_true):
     given trained model and instance of InferenceDataGenerator.
     """
 
-    # doing loop due to different img sizes
+    # doing loops below due to different img sizes
+
     y_pred = []
     for img in x:
-        y_pred.append(model.predict(np.expand_dims(img, axis=0)))
-    y_pred = np.array(y_pred)
-    y_pred = np.argmax(y_pred, axis=1)
-    print(y_pred.shape)
+        y_pred.append(
+          np.argmax(model.predict(np.expand_dims(img, axis=0)), axis=1))
+    y_pred = np.array(y_pred).flatten()
 
-    y_true = np.argmax(y_true, axis=0) # no batch dimension
-    print(y_true.shape)
+    y_true = []
+    for label in y:
+      y_true.append(
+        np.argmax(label, axis=0)
+      )
+    y_true = np.array(y_true).flatten()
 
     errors = np.abs(y_pred-y_true)
-
     return np.median(errors)
