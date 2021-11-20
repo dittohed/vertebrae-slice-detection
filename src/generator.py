@@ -79,8 +79,8 @@ class DataGenerator(tf.keras.utils.Sequence):
         sigma = max(self.max_sigma - self.epoch, self.min_sigma)
 
         for i, img_idx in enumerate(batch_indices):
-            img = self.x[img_idx]
-            label = self.y[img_idx]
+            img = self.x[img_idx].copy()
+            label = self.y[img_idx].copy()
 
             img = preprocessing.pad_img(img, self.input_shape)
             crop_img, crop_label = preprocessing.get_random_crop(
