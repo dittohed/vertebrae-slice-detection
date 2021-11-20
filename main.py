@@ -24,7 +24,6 @@ if __name__ == '__main__':
         x, y, spacings, names = utils.load_data(experiment[0])
         x, y = preprocessing.normalize_data(x, y, spacings)
         x_train, y_train, names_train, x_val, y_val, names_val = utils.split_data(x, y, names)
-        x_val, y_val = utils.prepare_for_inference(x_val, y_val)
 
         gen_train = generator.DataGenerator(x_train, y_train, 
                                 input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
@@ -41,4 +40,6 @@ if __name__ == '__main__':
                         callbacks=callbacks.get_callbacks(experiment[1]) + \
                                   [callbacks.PreviewOutput(x_val[:8], y_val[:8], experiment[1])])
         utils.plot_learning(history, experiment[1])
+
+        x_val, y_val = utils.prepare_for_inference(x_val, y_val)
         print(f'Median of error (mm): {utils.median(model, x_val, y_val)}')
