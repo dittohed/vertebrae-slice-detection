@@ -25,7 +25,7 @@ if __name__ == '__main__':
         x, y = preprocessing.normalize_data(x, y, spacings)
 
         # optional
-        utils.save_imgs_dist(x, 'front' if experiment[0] else 'sagittal')
+        # utils.save_imgs_dist(x, 'front' if experiment[0] else 'sagittal')
 
         x_train, y_train, names_train, x_val, y_val, names_val = utils.split_data(x, y, names)
 
