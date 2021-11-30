@@ -66,7 +66,7 @@ def y_to_onehot(y, input_shape):
     y_onehot = np.zeros(input_shape[0])
 
     if y < input_shape[0] and y >= 0:
-        y_onehot[int(round(y))] = 1 # y jest floatem, jak to jest?
+        y_onehot[int(min(round(y), input_shape[0]-1))] = 1 # y jest floatem, jak to jest?
 
     return y_onehot
 
