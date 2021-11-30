@@ -66,7 +66,8 @@ def y_to_onehot(y, input_shape):
     y_onehot = np.zeros(input_shape[0])
 
     if y < input_shape[0] and y >= 0:
-        y_onehot[int(round(y))] = 1 # y jest floatem, jak to jest?
+        y_onehot[int(round(y))] = 1 
+        y_onehot[int(min(round(y), input_shape[0]-1))] = 1 # y jest floatem, jak to jest?
 
     return y_onehot
 
@@ -213,3 +214,28 @@ def median(model, x, y_true):
     errors = np.abs(y_pred-y_true)
 
     return np.median(errors)
+
+def save_imgs_dist(imgs, title):
+    """
+    Saves a scatterplot of images dimensions (width and heights).
+    """
+
+    heights = []
+    widths = []
+
+    for i, img in enumerate(imgs):
+        if i == 0:
+            print(img.shape[0])
+            print(img.shape[1])
+            plt.imshow(img, cmap='gray')
+            plt.show() 
+
+        heights.append(img.shape[0])
+        widths.append(img.shape[1])
+
+    plt.scatter(widths, heights)
+    plt.xlabel('Widths [px=mm]')
+    plt.ylabel('Heights [px=mm]')
+    plt.title('Loaded images dimensions')
+    plt.savefig(os.path.join(config.FIGURES_PATH, f'{title}.png'))
+    plt.close()

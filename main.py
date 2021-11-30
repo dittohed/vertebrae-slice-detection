@@ -23,6 +23,10 @@ if __name__ == '__main__':
 
         x, y, spacings, names = utils.load_data(experiment[0])
         x, y = preprocessing.normalize_data(x, y, spacings)
+
+        # optional
+        utils.save_imgs_dist(x, 'front' if experiment[0] else 'sagittal')
+
         x_train, y_train, names_train, x_val, y_val, names_val = utils.split_data(x, y, names)
         x_val, y_val = utils.prepare_for_inference(x_val, y_val)
 
