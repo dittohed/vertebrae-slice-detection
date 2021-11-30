@@ -4,10 +4,10 @@ from tensorflow.keras.layers import Conv1D, SeparableConv2D, Conv2D, \
 UpSampling1D, MaxPooling2D, Dropout, \
 BatchNormalization, Activation, \
 add, Layer, Input, InputSpec, concatenate
-
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
+import numpy as np
 
 from . import config
 
@@ -203,6 +203,45 @@ def get_model():
     # using loss_weights for preventing extremely low values
 
     return model
+
+def predict_whole(model, x):
+    # TODO: Czy zachowanie offsetu pomoże? To jest ok eksperyment!
+    # TODO: środkować według krzywizny kręgosłupa
+    """
+    Predicts vertebrae level for whole-size images by 
+    using non-overlapping (cented) crops (windows) of training crops sizes.
+    """
+
+    # prepare crops and predict
+    crops = []
+    num_crops = {}
+    for i, img in enumerate(x):
+        assert img.shape[0] >= config.INPUT_SHAPE[0]
+        assert img.shape[1] >= config.INPUT_SHAPE[1]
+
+        num_crops[i] = np.ceil(img.shape[0] / config.INPUT_SHAPE[0])
+
+        # so that crop are centered     
+        x_center = img.shape[1] // 2
+        x_left = x_center - config.INPUT_SHAPE[1] // 2
+        x_right = x_center + config.INPUT_SHAPE[1] // 2
+
+        for j in num_crops[i]:
+            y_upper = min(j * config.INPUT_SHAPE[0], img.shape[0] - config.INPUT_SHAPE[0])
+            crops.append(img[y_upper : y_upper + config.INPUT_SHAPE[0], x_left : x_right])
+            # TODO: sprawdzić
+
+    crops = np.asarray(crops) # TODO: sprawdzić typ
+    y_crops = model.predict(crops) # batch_size = 32 by default
+
+    # determine vertebrae location using max probability
+    y = []
+    l_curr = 0
+    for key in num_crops:
+        r_curr = key[num_crops]
+        np.argmax(np.max(np.stack(y_crops[l_curr : r_curr]), axis=-1))
+        # ...
+
 
 if __name__ == '__main__':
     print(get_model().summary())
