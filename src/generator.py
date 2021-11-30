@@ -11,7 +11,7 @@ class DataGenerator(tf.keras.utils.Sequence):
     Uses different augmentation techniques.
     """
 
-    def __init__(self, x, y, input_shape=[256, 256, 1], 
+    def __init__(self, x, y,  validation=False, input_shape=[256, 256, 1],
                 batch_size=8, augment=True, shuffle=True):
         """
         * augment - whether to use augmentation;
@@ -21,6 +21,7 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         self.x = x
         self.y = y
+        self.validation = validation
         self.input_shape = input_shape
         self.batch_size = batch_size
         self.augment = augment
@@ -94,14 +95,16 @@ class DataGenerator(tf.keras.utils.Sequence):
         y_batch = utils.y_to_keypoint(x_batch, y_batch)
 
         # augmentations
-        x_batch = self.aug_seq.augment_images(x_batch.astype(np.float32))
-        y_batch = self.aug_seq.augment_keypoints(y_batch)
-        x_batch = preprocessing.clip_imgs(x_batch) 
+        if not self.validation:
+            x_batch = self.aug_seq.augment_images(x_batch.astype(np.float32))
+            y_batch = self.aug_seq.augment_keypoints(y_batch)
+            x_batch = preprocessing.clip_imgs(x_batch) 
 
         y_batch = np.array([utils.y_to_onehot(y.keypoints[0].y, self.input_shape) for y in y_batch])
 
         # label blur
-        y_batch = preprocessing.get_heatmap(y_batch, sigma)
+        if not self.validation:
+            y_batch = preprocessing.get_heatmap(y_batch, sigma)
 
         # add dummy color channel
         x_batch = np.expand_dims(x_batch, 3)

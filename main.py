@@ -28,11 +28,11 @@ if __name__ == '__main__':
         utils.save_imgs_dist(x, 'front' if experiment[0] else 'sagittal')
 
         x_train, y_train, names_train, x_val, y_val, names_val = utils.split_data(x, y, names)
-        x_val, y_val = utils.prepare_for_inference(x_val, y_val)
 
         gen_train = generator.DataGenerator(x_train, y_train, 
                                 input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
-        gen_val = generator.InferenceDataGenerator(x_val, y_val)
+        gen_val = generator.DataGenerator(x_val, y_val, validation=True,
+                                input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
 
         # for i, (x, y) in enumerate(gen_train):
         #     if i == len(gen_train):
@@ -41,7 +41,5 @@ if __name__ == '__main__':
         model = models.get_model()
         history = model.fit(gen_train, validation_data=gen_val,
                         epochs=config.NUM_EPOCHS, 
-                        callbacks=callbacks.get_callbacks(experiment[1]) + \
-                                  [callbacks.PreviewOutput(x_val[:8], y_val[:8], experiment[1])])
+                        callbacks=callbacks.get_callbacks(experiment[1]))
         utils.plot_learning(history, experiment[1])
-        print(f'Median of error (mm): {utils.median(model, x_val, y_val)}')
