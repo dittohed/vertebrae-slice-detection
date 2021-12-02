@@ -139,7 +139,7 @@ class GlobalMaxHorizontalPooling2D(_GlobalHorizontalPooling2D):
 # https://keras.io/api/metrics/
 def distance(y_true, y_pred):
     x_true = K.flatten(K.argmax(y_true, axis=1)) # dla każdego obrazu max indeks (batch_size,)
-    valid = K.cast(K.sum(y_true, axis=(1, 2)) > 0.5, 'float32') # jeżeli jest mocna predykcja
+    valid = K.cast(K.sum(y_true, axis=(1, 2)) > config.THRESHOLD, 'float32') # jeżeli jest mocna predykcja
 
     x_pred = K.flatten(K.argmax(y_pred, axis=1)) # dla każdego obrazu max indeks (batch_size,)
     d = K.cast(x_true - x_pred, 'float32') # różnica w mm
@@ -206,42 +206,67 @@ def get_model():
 
 def predict_whole(model, x):
     # TODO: Czy zachowanie offsetu pomoże? To jest ok eksperyment!
-    # TODO: środkować według krzywizny kręgosłupa
     """
     Predicts vertebrae level for whole-size images by 
-    using non-overlapping (cented) crops (windows) of training crops sizes.
+    using non-overlapping, centered crops (windows) of training crops sizes.
+    Prediction is done for all crops, then predicted vertebrae levels 
+    are calculated.
     """
 
-    # prepare crops and predict
+    # prepare crops 
     crops = []
     num_crops = {}
     for i, img in enumerate(x):
         assert img.shape[0] >= config.INPUT_SHAPE[0]
         assert img.shape[1] >= config.INPUT_SHAPE[1]
 
-        num_crops[i] = np.ceil(img.shape[0] / config.INPUT_SHAPE[0])
+        num_crops[i] = int(np.ceil(img.shape[0] / config.INPUT_SHAPE[0]))
 
         # so that crop are centered     
-        x_center = img.shape[1] // 2
+        x_center = img.shape[1] // 2 # TODO: środkować według krzywizny kręgosłupa
         x_left = x_center - config.INPUT_SHAPE[1] // 2
         x_right = x_center + config.INPUT_SHAPE[1] // 2
 
-        for j in num_crops[i]:
+        for j in range(num_crops[i]):
             y_upper = min(j * config.INPUT_SHAPE[0], img.shape[0] - config.INPUT_SHAPE[0])
             crops.append(img[y_upper : y_upper + config.INPUT_SHAPE[0], x_left : x_right])
-            # TODO: sprawdzić
 
     crops = np.asarray(crops) # TODO: sprawdzić typ
     y_crops = model.predict(crops) # batch_size = 32 by default
+    # TODO: sprawdzić shape, zakładam, że (n_crops, 256)
 
-    # determine vertebrae location using max probability
+    # determine predicted vertebrae location using max probability
     y = []
     l_curr = 0
     for key in num_crops:
-        r_curr = key[num_crops]
-        np.argmax(np.max(np.stack(y_crops[l_curr : r_curr]), axis=-1))
-        # ...
+        r_curr = l_curr + num_crops[key]
+        y_group = np.stack(y_crops[l_curr : r_curr]) # predictions associated with single image
 
+        max_prob = np.max(y_group)
+        # if max_prob > config.THRESHOLD:
+        #     # crop with maximum probability
+        #     max_prob_crop = np.argmax(np.max(y_group, axis=-1)) 
+        #     # vertebrae level within crop with maximum probability
+        #     max_prob_crop_idx = np.argmax(y_group, axis=-1)[max_prob_crop]
+        #     # verebrae level within whole image
+        #     y_pred = min(max_prob_crop * config.INPUT_SHAPE[0], 
+        #                 x[key].shape[0] - config.INPUT_SHAPE[0]) + max_prob_crop_idx
+        # else:
+        #     y_pred = -1 # -1 if no vertebrae predicted
+        
+        # crop with maximum probability
+        max_prob_crop = np.argmax(np.max(y_group, axis=-1)) 
+        # vertebrae level within crop with maximum probability
+        max_prob_crop_idx = np.argmax(y_group, axis=-1)[max_prob_crop]
+        # verebrae level within whole image
+        y_pred = min(max_prob_crop * config.INPUT_SHAPE[0], 
+                    x[key].shape[0] - config.INPUT_SHAPE[0]) + max_prob_crop_idx
+
+        y.append(y_pred) 
+        l_curr = r_curr
+
+    y = np.asarray(y)
+    return y
 
 if __name__ == '__main__':
     print(get_model().summary())

@@ -91,37 +91,31 @@ def save_orig_crop_comparison(img, label, crop_img, crop_label, img_idx):
         axs[1].set_title('Crop (no label)')
 
     plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
+    plt.close()
 
 # TODO; delete
 def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
-    # fig, axs = plt.subplots(1, 2, figsize=(20, 20))
-    # for ax in axs:
-    #     ax.axis('off')
+    fig, axs = plt.subplots(1, 2, figsize=(20, 20))
+    for ax in axs:
+        ax.axis('off')
 
-    # img = img.copy()
-    # img[label, :] = 255
-    # axs[0].imshow(img, vmin=0, vmax=255, cmap='gray')
-    # axs[0].set_title('Original')
-
-    # aug_label = np.nonzero(aug_label)[0]
-    # # overlay = np.zeros_like(aug_img)
-    # # overlay[aug_label, :] = 255
-    # if aug_label.shape == (0,):
-    #     axs[1].imshow(aug_img, vmin=0, vmax=255, cmap='gray')
-    #     axs[1].set_title('Augmented crop (no label)')
-    # else:
-    #     aug_img = aug_img.copy()
-    #     # aug_img[aug_label[0], :] = 255
-    #     aug_img[aug_label, :] = 255
-    #     axs[1].imshow(aug_img, vmin=0, vmax=255, cmap='gray')
-    #     axs[1].set_title('Augmented crop')
-
-    # plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
+    img = img.copy()
+    img[label, :] = 255
+    axs[0].imshow(img, vmin=0, vmax=255, cmap='gray')
+    axs[0].set_title('Original')
 
     aug_label = np.nonzero(aug_label)[0]
-    aug_img = aug_img.copy()
-    aug_img[aug_label, :] = 255
-    cv2.imwrite(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'), aug_img)
+    if aug_label.shape == (0,):
+        axs[1].imshow(aug_img, vmin=0, vmax=255, cmap='gray')
+        axs[1].set_title('Augmented crop (no label)')
+    else:
+        aug_img = aug_img.copy()
+        aug_img[aug_label, :] = 255
+        axs[1].imshow(aug_img, vmin=0, vmax=255, cmap='gray')
+        axs[1].set_title('Augmented crop')
+
+    plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
+    plt.close()
 
 def split_data(x, y, names):
     rs = ShuffleSplit(n_splits=1, test_size=.25, random_state=0)
@@ -147,13 +141,13 @@ def prepare_for_inference(x, y):
     y_new = []
     for i in range(x.shape[0]):
         # both width and height should be dividible by 32 (maxpooling and concats)
-        new_height = np.ceil((x[i].shape[0] / 32)) * 32
-        new_width = np.ceil((x[i].shape[1] / 32)) * 32
 
-        # if too small
-        # TODO
-
-        x[i] = preprocessing.pad_img(x[i], (new_height, new_width)) 
+        # WARNING! 3 lines below were used to input full-size images to U-Net (and no if)
+        new_height = int(np.ceil((x[i].shape[0] / 32)) * 32)
+        new_width = int(np.ceil((x[i].shape[1] / 32)) * 32)
+        x[i], y[i] = preprocessing.pad_img(x[i], y[i], (new_height, new_width))
+        # if x[i].shape[0] < config.INPUT_SHAPE[0] or x[i].shape[1] < config.INPUT_SHAPE[1]:
+        #     x[i], y[i] = preprocessing.pad_img(x[i], y[i], config.INPUT_SHAPE[:-1]) 
 
         # add dummy color channel
         x[i] = np.expand_dims(x[i], 2).astype(np.float32)

@@ -40,23 +40,25 @@ def reduce_hu_scale(img):
 
     return img.astype(np.float32) # TODO: czy na pewno float32?, tutaj chyba jest konwersja na ndarray
 
-def pad_img(img, input_shape):
-    # TODO: uwaga, tutaj mogło też coś być z testowymi
+def pad_img(img, label, input_shape):
+    # TODO: uwaga, wcześniej nie brałem pod uwagę
+    # że padding wysokości ma wpływ na zmianę labela!
+    # Wywoływałem też tę metodę za każdym razem w generatorze.
     """
-    Pads image if it's smaller than input_shape.
+    Pads image with 0 to match given input_shape.
     """
 
-    if img.shape[0] < input_shape[0] or img.shape[1] < input_shape[1]:
-        h_diff = max(0, input_shape[0]-img.shape[0])
-        w_diff = max(0, input_shape[1]-img.shape[1])
+    h_diff = max(0, input_shape[0]-img.shape[0])
+    w_diff = max(0, input_shape[1]-img.shape[1])
 
-        h_pads = (h_diff//2, h_diff//2 + 1) if h_diff % 2 else (h_diff/2, h_diff/2)
-        w_pads = (w_diff//2, w_diff//2 + 1) if w_diff % 2 else (w_diff/2, w_diff/2)
+    h_pads = (h_diff//2, h_diff//2 + 1) if h_diff % 2 else (h_diff/2, h_diff/2)
+    w_pads = (w_diff//2, w_diff//2 + 1) if w_diff % 2 else (w_diff/2, w_diff/2)
 
-        img = cv2.copyMakeBorder(img, int(h_pads[0]), int(h_pads[1]), int(w_pads[0]), int(w_pads[1]),
-                                 borderType=cv2.BORDER_CONSTANT, value=0)
+    img = cv2.copyMakeBorder(img, int(h_pads[0]), int(h_pads[1]), int(w_pads[0]), int(w_pads[1]),
+                                borderType=cv2.BORDER_CONSTANT, value=0)
 
-    return img
+    # top padding influences label
+    return img, label + int(h_pads[0])
 
 def get_random_crops(img, label, input_shape, n_crops):
     # TODO: border_shift?

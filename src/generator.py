@@ -12,9 +12,8 @@ class DataGenerator(tf.keras.utils.Sequence):
     """
 
     def __init__(self, x, y,  validation=False, input_shape=[256, 256, 1],
-                batch_size=8, augment=True, shuffle=True):
+                batch_size=8, shuffle=True):
         """
-        * augment - whether to use augmentation;
         * imgs_per_batch - number of original images to use when generating batch with augmentation;
         * shuffle - whether to reshuffle data on epoch start.
         """
@@ -24,18 +23,28 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.validation = validation
         self.input_shape = input_shape
         self.batch_size = batch_size
-        self.augment = augment
         self.shuffle = shuffle
 
         self.max_sigma = config.MAX_SIGMA # for blurring vertebrae level
         self.min_sigma = config.MIN_SIGMA
         self.epoch = 0 # for controlling sigma value
-        self.indices = np.arange(x.shape[0]) # may be shuffled on epoch end 
-        np.random.shuffle(self.indices)
+        self.indices = np.arange(x.shape[0])
 
         self.aug_seq = preprocessing.get_augmentation_sequence().to_deterministic()
         self.curr_idx = 0 # TODO: for tests only, to be deleted
         self.used_indices = [] # TODO: for test only, to be deleted
+
+        if self.shuffle and not self.validation:
+            np.random.shuffle(self.indices)
+
+        # pad imgs smaller than given input_shape
+        for i in range(x.shape[0]):
+            img = self.x[i]
+            label = self.y[i]
+
+            if img.shape[0] < self.input_shape[0] or img.shape[1] < self.input_shape[1]:
+                print(f'Doing padding: {img.shape} -> {self.input_shape}')
+                self.x[i], self.y[i] = preprocessing.pad_img(img, label, self.input_shape)
 
     def __len__(self):
         """
@@ -82,7 +91,6 @@ class DataGenerator(tf.keras.utils.Sequence):
             img = self.x[img_idx]
             label = self.y[img_idx]
 
-            img = preprocessing.pad_img(img, self.input_shape)
             crop_img, crop_label = preprocessing.get_random_crop(
                                 img, label, self.input_shape)
 
@@ -102,6 +110,15 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         y_batch = np.array([utils.y_to_onehot(y.keypoints[0].y, self.input_shape) for y in y_batch])
 
+        # (optional) saves a visual comparison for debugging
+        # for i, img_idx in enumerate(batch_indices):
+        #     img = self.x[img_idx]
+        #     label = self.y[img_idx]
+        #     aug_img = x_batch[i]
+        #     aug_label = y_batch[i]
+
+        #     utils.save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx)
+
         # label blur
         if not self.validation:
             y_batch = preprocessing.get_heatmap(y_batch, sigma)
@@ -117,7 +134,7 @@ class DataGenerator(tf.keras.utils.Sequence):
 
     def on_epoch_end(self):
         self.epoch += 1
-        if self.shuffle == True:
+        if self.shuffle and not self.validation:
             np.random.shuffle(self.indices)
 
 # TODO: remove
