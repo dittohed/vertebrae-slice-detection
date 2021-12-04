@@ -1,15 +1,18 @@
 import os
 
 from tensorflow.keras.layers import Conv1D, SeparableConv2D, Conv2D, \
-UpSampling1D, MaxPooling2D, Dropout, \
+UpSampling1D, Conv1DTranspose, MaxPooling2D, Dropout, \
 BatchNormalization, Activation, \
 add, Layer, Input, InputSpec, concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
+from tensorflow.keras.applications import EfficientNetB7
 import numpy as np
+from tensorflow.python.keras.layers.convolutional import Conv2DTranspose
 
-from . import config
+# from . import config
+# import config
 
 # wykonuje num_blocks operacji określonych przez conv_unit, a następnie max pooling 2x2
 def conv_block(inp, num_filters=64, kernel_size=3, momentum=0.8, padding='same', pool_size=2, num_blocks=1,
@@ -146,7 +149,7 @@ def distance(y_true, y_pred):
 
     return K.abs(valid * d) # * d # kwadratowa róznica w mm  (batch_size,)
 
-def get_model():
+def get_model_orig():
     '''
     Definiuje model odpowiadający CNNLine z repozytorium (apps/slice_detection/models.py).
     Są małe niezgodności z pracą (dodatkowa konwolucja x1 przy pod koniec bloku przy wchodzeniu do góry
@@ -203,6 +206,71 @@ def get_model():
     # using loss_weights for preventing extremely low values
 
     return model
+
+def get_model_eff():
+    """
+    Coś tam mam, ale najlepiej byłoby dobrać wersję, która będzie mieć najbardziej zbliżony shape.
+    https://keras.io/examples/vision/image_classification_efficientnet_fine_tuning/
+    """
+    inputs = Input(shape=(256, 384, 3))
+
+    # TODO: be careful with scaling, normalization and 3 channels
+    backbone = EfficientNetB7(weights='imagenet', include_top=False, input_tensor=inputs)
+    for layer in backbone.layers:
+        if isinstance(layer, BatchNormalization):
+            layer.trainable = False
+
+    block0 = backbone.get_layer('normalization').output 
+    block1 = backbone.get_layer('block1d_add').output
+    block2 = backbone.get_layer('block2g_add').output
+    block3 = backbone.get_layer('block3g_add').output
+    block4 = backbone.get_layer('block4j_add').output
+    
+    conv_mid = GlobalMaxHorizontalPooling2D()(block4)
+
+    up1 = Conv1DTranspose(256, 2, strides=2, padding='same')(conv_mid)
+    up1 = Dropout(0.25)(up1)
+    up1 = concatenate([up1, GlobalMaxHorizontalPooling2D()(block3)])
+    for _ in range(2):
+        up1 = Conv1D(256, 3, padding='same')(up1)
+        up1 = BatchNormalization()(up1)
+        up1 = Activation('relu')(up1)
+    
+    up2 = Conv1DTranspose(128, 2, strides=2, padding='same')(up1)
+    up2 = Dropout(0.25)(up2)
+    up2 = concatenate([up2, GlobalMaxHorizontalPooling2D()(block2)])
+    for _ in range(2):
+        up2 = Conv1D(128, 3, padding='same')(up2)
+        up2 = BatchNormalization()(up2)
+        up2 = Activation('relu')(up2)
+
+    up3 = Conv1DTranspose(128, 2, strides=2, padding='same')(up2)
+    up3 = Dropout(0.25)(up3)
+    up3 = concatenate([up3, GlobalMaxHorizontalPooling2D()(block1)])
+    for _ in range(2):
+        up3 = Conv1D(128, 3, padding='same')(up3)
+        up3 = BatchNormalization()(up3)
+        up3 = Activation('relu')(up3)
+
+    up4 = Conv1DTranspose(64, 2, strides=2, padding='same')(up3)
+    up4 = Dropout(0.25)(up4)
+    up4 = concatenate([up4, GlobalMaxHorizontalPooling2D()(block0)])
+    for _ in range(2):
+        up4 = Conv1D(64, 3, padding='same')(up4)
+        up4 = BatchNormalization()(up4)
+        up4 = Activation('relu')(up4)
+
+    up4 = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
+
+    model = Model(inputs=[inputs], outputs=[up4])
+    return model
+
+def get_model_auth():
+    """
+    Model a'la nnU-Net (bez maxpoolingu, z instance normalization)
+    """
+
+
 
 def predict_whole(model, x):
     # TODO: Czy zachowanie offsetu pomoże? To jest ok eksperyment!
@@ -269,4 +337,5 @@ def predict_whole(model, x):
     return y
 
 if __name__ == '__main__':
-    print(get_model().summary())
+    get_model_eff().summary()
+    # get_model_orig().summary()

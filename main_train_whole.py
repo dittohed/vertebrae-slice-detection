@@ -23,7 +23,7 @@ if __name__ == '__main__':
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
     gen_val = generator.InferenceDataGenerator(x_val, y_val)
 
-    model = models.get_model()
+    model = models.get_model_orig()
     history = model.fit(gen_train, validation_data=gen_val,
                     epochs=config.NUM_EPOCHS, 
                     callbacks=callbacks.get_callbacks('whole'))

@@ -13,7 +13,7 @@ import src.preprocessing as preprocessing
 import src.models as models
 
 if __name__ == '__main__':
-    model = models.get_model()
+    model = models.get_model_orig()
     model.load_weights(os.path.join(config.CHECKPOINT_PATH, 'train0', 'model'))
 
     x, y, spacings, names = utils.load_data(config.USE_FRONT)
