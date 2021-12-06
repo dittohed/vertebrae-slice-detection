@@ -13,12 +13,15 @@ HU_LOWER = 100
 HU_UPPER = 1500
 
 # training
+MODEL_NAME = 'Kanavati'
 MAX_SIGMA = 10
 MIN_SIGMA = 1.5 # było 3, ale zmieniłem na takie jak w publikacji
 BATCH_SIZE = 8
 ANYWHERE_RATE = 1 # 0.5 -> 1.0; prawdopodobieństwo, że wycinek może nie zawierać kręgu
 X_DIST = 10 # maksymalna odległość środka wycinka od środka obrazu
 OPTIMIZER = 'adam'
+LOSS = 'binary_crossentropy' # 'sigmoid_focal_crossentropy' or 'binary_crossentropy' or 'categorical_crossentropy'
+ACTIVATION = 'sigmoid' # 'softmax' or 'sigmoid'
 NUM_EPOCHS = 50
 
 # other

@@ -2,90 +2,81 @@ import os
 
 from tensorflow.keras.layers import Conv1D, SeparableConv2D, Conv2D, \
 UpSampling1D, Conv1DTranspose, MaxPooling2D, Dropout, \
-BatchNormalization, Activation, \
+BatchNormalization, Activation, LeakyReLU, \
 add, Layer, Input, InputSpec, concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
 from tensorflow.keras.applications import EfficientNetB7
+from tensorflow_addons.losses import SigmoidFocalCrossEntropy
 import numpy as np
-from tensorflow.python.keras.layers.convolutional import Conv2DTranspose
 
 # from . import config
-# import config
+import config
 
-# wykonuje num_blocks operacji określonych przez conv_unit, a następnie max pooling 2x2
-def conv_block(inp, num_filters=64, kernel_size=3, momentum=0.8, padding='same', pool_size=2, num_blocks=1,
-               dilation_rate=(1, 1), separable=False):
+def down_block(input_tensor, n_filters, k_size=3, n_conv=2, 
+              use_maxpool=True, pool_size=2, leaky_relu=False, bn_momentum=0.99):
+    """
+    Performs two 2D convolutions with additional operations 
+    (in a similar manner to U-Net's contracting path blocks).
+    """
 
-    # określa 'jednostkę' (konwolucja + BatchNormalization + ReLU)
-    def conv_unit(inp, num_filters=64, kernel_size=3, momentum=0.8, padding='same', do_act=True, dilation_rate=(1, 1),
-                  separable=False):
-
-        if separable: # specyfikacja rodzaju konwolucji (SeparableConv2D - szybsza i lżejsza)
-            ConvFn = SeparableConv2D
+    down = input_tensor
+    for _ in range(n_conv):
+        down = Conv2D(n_filters, k_size, padding='same')(down)
+        down = BatchNormalization(momentum=bn_momentum)(down) # Kanavati et al. use non-standard momentum
+        if leaky_relu:
+            down = LeakyReLU(1e-2)(down)
         else:
-            ConvFn = Conv2D
+            down = Activation('relu')(down)
 
-        conv = ConvFn(num_filters, kernel_size, padding=padding, dilation_rate=dilation_rate)(inp)
-        conv = BatchNormalization(momentum=momentum)(conv)
-        if do_act:
-            conv = Activation('relu')(conv)
-
-        return conv
-
-    conv = inp
-    for i in range(num_blocks):
-        conv = conv_unit(conv, num_filters, kernel_size, momentum, padding, True, dilation_rate=dilation_rate,
-                         separable=separable)
-
-    if pool_size is not None:
-        pool = MaxPooling2D(pool_size=pool_size)(conv)
-
-        return conv, pool
+    if use_maxpool:
+        pool = MaxPooling2D(pool_size)(down)
     else:
-        return conv
+        pool = Conv2D(n_filters, k_size, strides=pool_size, padding='same')(down)
+        pool = BatchNormalization(momentum=bn_momentum)(pool)
+        if leaky_relu:
+            pool = LeakyReLU(1e-2)(pool)
+        else:
+            pool = Activation('relu')(pool)
 
-def up_conv_block_add_1D(inp, inp2, num_filters=64, kernel_size=3, momentum=0.8, padding='same', up_size=2,
-                         num_blocks=3, is_residual=False):
+    return down, pool
 
-    # określa 'jednostkę' (konwolucja + BatchNormalization + ReLU)
-    def up_conv_unit(inp, num_filters=64, kernel_size=3, momentum=0.8, padding='same', do_act=True):
-        conv = Conv1D(num_filters, kernel_size, padding=padding)(inp)
-        conv = BatchNormalization(momentum=momentum)(conv)
-        if do_act:
-            conv = Activation('relu')(conv)
-        return conv
+def up_block(input_tensor1, input_tensor2, n_filters, k_size=3, n_conv=2,
+            use_transpose=True, upscale=2, for_eff=False, leaky_relu=False, bn_momentum=0.99):
+    """
+    Performs upscale'ing, concatenation and two 1D convolutions with additional operations 
+    (in a similar manner to U-Net's expanding path blocks).
+    """
 
-    if is_residual:
-        inp = Conv1D(num_filters, 1, padding=padding)(inp)
+    if use_transpose:
+        up = Conv1DTranspose(n_filters, upscale, strides=upscale, padding='same')(input_tensor1)
+    else:
+        up = UpSampling1D(upscale)(input_tensor1) # Kanavati et al. don't use transpose convolutions
 
-    # upsampling na aktualnym tensorze
-    inp = UpSampling1D(size=up_size)(inp)
-    upcov = inp
+    if for_eff: 
+        up = Dropout(0.25)(up)
 
-    # konwersja 2D -> 1D na połączonym tensorze
-    inp2 = GlobalMaxHorizontalPooling2D()(inp2)
+    up = concatenate([up, GlobalMaxHorizontalPooling2D()(input_tensor2)])
 
-    # złączenie
-    upcov = concatenate([upcov, inp2], axis=2)
+    if not for_eff: # EfficientNet applies built-in dropout before skip connection
+        up = Dropout(0.25)(up)
+    
+    for _ in range(n_conv):
+        up = Conv1D(n_filters, k_size, padding='same')(up)
+        up = BatchNormalization(momentum=bn_momentum)(up)
+        if leaky_relu:
+            up = LeakyReLU(1e-2)(up)
+        else:
+            up = Activation('relu')(up)
 
-    upcov = Dropout(0.25)(upcov)
-    for i in range(num_blocks):
-        upcov = up_conv_unit(upcov, num_filters, kernel_size, momentum, padding, True)
+    return up
 
-    upcov = up_conv_unit(upcov, num_filters, 1, momentum, padding, False)
-
-    if is_residual:
-        upcov = add([upcov, inp])
-    upcov = Activation('relu')(upcov)
-
-    return upcov
-
+# as in sarcopenia-ai
 class _GlobalHorizontalPooling2D(Layer):
-    '''
+    """
     Abstract class for different global pooling 2D layers.
-    '''
+    """
 
     def __init__(self, data_format=None, **kwargs):
         super(_GlobalHorizontalPooling2D, self).__init__(**kwargs)
@@ -106,38 +97,13 @@ class _GlobalHorizontalPooling2D(Layer):
         base_config = super(_GlobalHorizontalPooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-# oblicza max z wierszy w celu konwersji 2D -> 1D
 class GlobalMaxHorizontalPooling2D(_GlobalHorizontalPooling2D):
-    '''
-    Global max pooling operation for spatial data.
-    # Arguments
-        data_format: A string,
-            one of `channels_last` (default) or `channels_first`.
-            The ordering of the dimensions in the inputs.
-            `channels_last` corresponds to inputs with shape
-            `(batch, height, width, channels)` while `channels_first`
-            corresponds to inputs with shape
-            `(batch, channels, height, width)`.
-            It defaults to the `image_data_format` value found in your
-            Keras config file at `~/.keras/keras.json`.
-            If you never set it, then it will be "channels_last".
-    # Input shape
-        - If `data_format='channels_last'`:
-            4D tensor with shape:
-            `(batch_size, rows, cols, channels)`
-        - If `data_format='channels_first'`:
-            4D tensor with shape:
-            `(batch_size, channels, rows, cols)`
-    # Output shape
-        2D tensor with shape:
-        `(batch_size, channels)`
-    '''
+    """
+    Calulates max value for each row to convert 2D to 1D.
+    """
 
     def call(self, inputs):
-        # if self.data_format == 'channels_last':
         return K.max(inputs, axis=[2])
-        # else:
-        #     return K.max(inputs, axis=[3])
 
 # https://keras.io/api/metrics/
 def distance(y_true, y_pred):
@@ -149,62 +115,53 @@ def distance(y_true, y_pred):
 
     return K.abs(valid * d) # * d # kwadratowa róznica w mm  (batch_size,)
 
-def get_model_orig():
-    '''
+def get_model_kanavati():
+    """
     Definiuje model odpowiadający CNNLine z repozytorium (apps/slice_detection/models.py).
     Są małe niezgodności z pracą (dodatkowa konwolucja x1 przy pod koniec bloku przy wchodzeniu do góry
     oraz liczba filtrów w przedostatniej warstwie modelu).
     Niemniej jednak, liczba parametrów zgadza się z tą podaną w  pracy!
-    '''
+    """
 
-    input_shape = (None, None, 1)
+    input_shape = (256, 384, 1)
     inputs = Input(input_shape)
 
-    # w dół
-    conv2, pool2 = conv_block(inputs, num_filters=32, kernel_size=3, num_blocks=2)
-    # dwie 32-filtrowe konwolucje 3x3, a następnie max pooling 2x2
+    down1, pool1 = down_block(inputs, 32, bn_momentum=0.8)
+    down2, pool2 = down_block(pool1, 64, bn_momentum=0.8)
+    down3, pool3 = down_block(pool2, 128, bn_momentum=0.8)
+    down4, pool4 = down_block(pool3, 256, k_size=5, n_conv=1, pool_size=4, bn_momentum=0.8)
 
-    conv3, pool3 = conv_block(pool2, num_filters=64, kernel_size=3, num_blocks=2)
-    # dwie 64-filtrowe konwolucje 3x3, a następnie max pooling 2x2
+    mid, _ = down_block(pool4, 512, 3)
+    mid = GlobalMaxHorizontalPooling2D()(mid)
 
-    conv4, pool4 = conv_block(pool3, num_filters=128, kernel_size=3, num_blocks=2)
-    # dwie 128-filtrowe konwolucje 3x3, a następnie max pooling 2x2
+    # in expanding path, Kanavati et al. use additional convolution with k_size=1
+    up1 = up_block(mid, down4, 256, k_size=5, n_conv=1, use_transpose=False, upscale=4, bn_momentum=0.8)
+    up1 = Conv1D(256, 1, padding='same')(up1)
+    up1 = BatchNormalization(momentum=0.8)(up1)
+    up1 = Activation('relu')(up1)
 
-    conv5, pool5 = conv_block(pool4, num_filters=256, kernel_size=5, num_blocks=1, pool_size=4)
-    # jedna 256-filtrowa konwolucja 5x5, a następnie max pooling 4x4
+    up2 = up_block(up1, down3, 128, use_transpose=False, bn_momentum=0.8)
+    up2 = Conv1D(128, 1, padding='same')(up2)
+    up2 = BatchNormalization(momentum=0.8)(up2)
+    up2 = Activation('relu')(up2)
 
-    conv_mid = conv_block(pool5, num_filters=512, kernel_size=3, num_blocks=2, pool_size=None)
-    # dwie 512-filtrowe konwolucje 3x3 bez max poolingu
+    up3 = up_block(up2, down2, 128, use_transpose=False, bn_momentum=0.8)
+    up3 = Conv1D(128, 1, padding='same')(up3)
+    up3 = BatchNormalization(momentum=0.8)(up3)
+    up3 = Activation('relu')(up3)
 
-    conv_mid = GlobalMaxHorizontalPooling2D()(conv_mid)
-    # max z wierszy
+    up4 = up_block(up3, down1, 128, use_transpose=False, bn_momentum=0.8)
+    up4 = Conv1D(128, 1, padding='same')(up4)
+    up4 = BatchNormalization(momentum=0.8)(up4)
+    up4 = Activation('relu')(up4)
 
-    # do góry
-    conv6 = up_conv_block_add_1D(conv_mid, conv5, num_filters=256, kernel_size=5, num_blocks=1, up_size=4)
-    # łączy poprzedni wynik 2D z upscale'owanym obecnym wynikiem 1D
-    # wykonuje jedną 256-filtrową konwolucję x5 + dodatkowo konwolucję x1
+    if config.ACTIVATION == 'sigmoid':
+        outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
+    elif config.ACTIVATION == 'softmax':
+        outputs = Conv1D(1, 1, activation=None, padding='same')(up4)
+        outputs = Activation('softmax')(outputs)
 
-    conv7 = up_conv_block_add_1D(conv6, conv4, num_filters=128, kernel_size=3, num_blocks=2)
-    # łączy poprzedni wynik 2D z upscale'owanym obecnym wynikiem 1D
-    # wykonuje dwie 128-filtrowe konwolucje x3 + dodatkowo konwolucję x1
-
-    conv8 = up_conv_block_add_1D(conv7, conv3, num_filters=128, kernel_size=3, num_blocks=2)
-    # łączy poprzedni wynik 2D z upscale'owanym obecnym wynikiem 1D
-    # wykonuje dwie 128-filtrowe konwolucje x3 + dodatkowo konwolucję x1
-
-    conv9 = up_conv_block_add_1D(conv8, conv2, num_filters=128, kernel_size=3, num_blocks=2)
-    # łączy poprzedni wynik 2D z upscale'owanym obecnym wynikiem 1D
-    # wykonuje dwie 128-filtrowe konwolucje x3 + dodatkowo konwolucję x1
-
-    conv10 = Conv1D(1, 1, activation='sigmoid', name='last_conv', padding='same')(conv9)
-    # przekształca wielowarstwowy pasek 1D w jednowarstwowy pasek 1D z prawdopodobieństwami
-
-    model = Model(inputs=[inputs], outputs=[conv10])
-
-    model.compile(optimizer=config.OPTIMIZER, loss='binary_crossentropy', loss_weights=[1000],  
-                 metrics=[distance])
-    # using loss_weights for preventing extremely low values
-
+    model = Model(inputs=[inputs], outputs=[outputs])
     return model
 
 def get_model_eff():
@@ -225,52 +182,52 @@ def get_model_eff():
     block2 = backbone.get_layer('block2g_add').output
     block3 = backbone.get_layer('block3g_add').output
     block4 = backbone.get_layer('block4j_add').output
-    
+
     conv_mid = GlobalMaxHorizontalPooling2D()(block4)
 
-    up1 = Conv1DTranspose(256, 2, strides=2, padding='same')(conv_mid)
-    up1 = Dropout(0.25)(up1)
-    up1 = concatenate([up1, GlobalMaxHorizontalPooling2D()(block3)])
-    for _ in range(2):
-        up1 = Conv1D(256, 3, padding='same')(up1)
-        up1 = BatchNormalization()(up1)
-        up1 = Activation('relu')(up1)
-    
-    up2 = Conv1DTranspose(128, 2, strides=2, padding='same')(up1)
-    up2 = Dropout(0.25)(up2)
-    up2 = concatenate([up2, GlobalMaxHorizontalPooling2D()(block2)])
-    for _ in range(2):
-        up2 = Conv1D(128, 3, padding='same')(up2)
-        up2 = BatchNormalization()(up2)
-        up2 = Activation('relu')(up2)
+    up1 = up_block(conv_mid, block3, 256, for_eff=True)
+    up2 = up_block(up1, block2, 128, for_eff=True)
+    up3 = up_block(up2, block1, 128, for_eff=True)
+    up4 = up_block(up3, block0, 64, for_eff=True)
 
-    up3 = Conv1DTranspose(128, 2, strides=2, padding='same')(up2)
-    up3 = Dropout(0.25)(up3)
-    up3 = concatenate([up3, GlobalMaxHorizontalPooling2D()(block1)])
-    for _ in range(2):
-        up3 = Conv1D(128, 3, padding='same')(up3)
-        up3 = BatchNormalization()(up3)
-        up3 = Activation('relu')(up3)
+    if config.ACTIVATION == 'sigmoid':
+        outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
+    elif config.ACTIVATION == 'softmax':
+        outputs = Conv1D(1, 1, activation=None, padding='same')(up4)
+        outputs = Activation('softmax')(outputs)
 
-    up4 = Conv1DTranspose(64, 2, strides=2, padding='same')(up3)
-    up4 = Dropout(0.25)(up4)
-    up4 = concatenate([up4, GlobalMaxHorizontalPooling2D()(block0)])
-    for _ in range(2):
-        up4 = Conv1D(64, 3, padding='same')(up4)
-        up4 = BatchNormalization()(up4)
-        up4 = Activation('relu')(up4)
-
-    up4 = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
-
-    model = Model(inputs=[inputs], outputs=[up4])
+    model = Model(inputs=[inputs], outputs=[outputs])
     return model
 
-def get_model_auth():
+def get_model_own():
     """
-    Model a'la nnU-Net (bez maxpoolingu, z instance normalization)
+    Model a'la nnU-Net (bez maxpoolingu, instance normalization? i leaky ReLU 1e-2)
     """
+    # TODO: instance normalization?
+    input_shape = (256, 384, 1)
+    inputs = Input(input_shape)
 
+    down1, pool1 = down_block(inputs, 32, use_maxpool=False, leaky_relu=True)
+    down2, pool2 = down_block(pool1, 64, use_maxpool=False, leaky_relu=True)
+    down3, pool3 = down_block(pool2, 128, use_maxpool=False, leaky_relu=True)
+    down4, pool4 = down_block(pool3, 256, use_maxpool=False, leaky_relu=True)
 
+    mid, _ = down_block(pool4, 512, use_maxpool=False, leaky_relu=True)
+    mid = GlobalMaxHorizontalPooling2D()(mid)
+
+    up1 = up_block(mid, down4, 256, leaky_relu=True)
+    up2 = up_block(up1, down3, 128, leaky_relu=True)
+    up3 = up_block(up2, down2, 64, leaky_relu=True)
+    up4 = up_block(up3, down1, 32, leaky_relu=True)
+
+    if config.ACTIVATION == 'sigmoid':
+        outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
+    elif config.ACTIVATION == 'softmax':
+        outputs = Conv1D(1, 1, activation=None, padding='same')(up4)
+        outputs = Activation('softmax')(outputs)
+
+    model = Model(inputs=[inputs], outputs=[outputs])
+    return model
 
 def predict_whole(model, x):
     # TODO: Czy zachowanie offsetu pomoże? To jest ok eksperyment!
@@ -336,6 +293,25 @@ def predict_whole(model, x):
     y = np.asarray(y)
     return y
 
+def get_model(model_name):
+    """
+    Returns a compiled model, according to given model name.
+    Common conventions used in models' architectures (inspired by sarcopenia-ai):
+    - 'same' padding
+    - conv + BN + activation scheme
+    - using dropout with skip-connections only (expanding path)
+    """
+
+    if model_name == 'Kanavati':
+        model = get_model_kanavati()
+    elif model_name == 'Efficient':
+        model = get_model_eff()
+    elif model_name == 'Own':
+        model = get_model_own()
+
+    model.compile(optimizer=config.OPTIMIZER, loss=config.LOSS, loss_weights=[1000],  
+                metrics=[distance])
+    return model
+
 if __name__ == '__main__':
-    get_model_eff().summary()
-    # get_model_orig().summary()
+    get_model('Own').summary()
