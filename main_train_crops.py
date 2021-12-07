@@ -18,16 +18,13 @@ if __name__ == '__main__':
 
     x_train, y_train, names_train, x_val, y_val, names_val = utils.split_data(x, y, names)
 
-    for model_name in ['Kanavati', 'Efficient', 'Own']:
-        print(f'Using model: {model_name}.')
+    gen_train = generator.DataGenerator(x_train, y_train, 
+                            input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
+    gen_val = generator.DataGenerator(x_val, y_val, validation=True,
+                            input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
 
-        gen_train = generator.DataGenerator(x_train, y_train, 
-                                input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
-        gen_val = generator.DataGenerator(x_val, y_val, validation=True,
-                                input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE)
-
-        model = models.get_model(model_name)
-        history = model.fit(gen_train, validation_data=gen_val,
-                        epochs=config.NUM_EPOCHS, 
-                        callbacks=callbacks.get_callbacks('crops'))
-        utils.plot_learning(history, 'crops')
+    model = models.get_model(config.MODEL_NAME)
+    history = model.fit(gen_train, validation_data=gen_val,
+                    epochs=config.NUM_EPOCHS, 
+                    callbacks=callbacks.get_callbacks('crops'))
+    utils.plot_learning(history, 'crops')

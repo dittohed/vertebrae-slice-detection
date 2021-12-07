@@ -123,7 +123,7 @@ def get_model_kanavati():
     Niemniej jednak, liczba parametrów zgadza się z tą podaną w  pracy!
     """
 
-    input_shape = (256, 384, 1)
+    input_shape = (None, None, 1)
     inputs = Input(input_shape)
 
     down1, pool1 = down_block(inputs, 32, bn_momentum=0.8)
@@ -169,7 +169,7 @@ def get_model_eff():
     Coś tam mam, ale najlepiej byłoby dobrać wersję, która będzie mieć najbardziej zbliżony shape.
     https://keras.io/examples/vision/image_classification_efficientnet_fine_tuning/
     """
-    inputs = Input(shape=(256, 384, 3))
+    inputs = Input(shape=(None, None, 3))
 
     # TODO: be careful with scaling, normalization and 3 channels
     backbone = EfficientNetB7(weights='imagenet', include_top=False, input_tensor=inputs)
@@ -204,7 +204,7 @@ def get_model_own():
     Model a'la nnU-Net (bez maxpoolingu, instance normalization? i leaky ReLU 1e-2)
     """
     # TODO: instance normalization?
-    input_shape = (256, 384, 1)
+    input_shape = (None, None, 1)
     inputs = Input(input_shape)
 
     down1, pool1 = down_block(inputs, 32, use_maxpool=False, leaky_relu=True)
@@ -223,7 +223,7 @@ def get_model_own():
     if config.ACTIVATION == 'sigmoid':
         outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
     elif config.ACTIVATION == 'softmax':
-        outputs = Conv1D(1, 1, activation=None, padding='same')(up4)
+        outputs = Conv1D(1, 1, activation='None', padding='same')(up4)
         outputs = Activation('softmax')(outputs)
 
     model = Model(inputs=[inputs], outputs=[outputs])
@@ -314,4 +314,4 @@ def get_model(model_name):
     return model
 
 if __name__ == '__main__':
-    get_model('Own').summary()
+    get_model('Efficient').summary()

@@ -12,10 +12,11 @@ class DataGenerator(tf.keras.utils.Sequence):
     """
 
     def __init__(self, x, y,  validation=False, input_shape=[256, 256, 1],
-                batch_size=8, shuffle=True):
+                batch_size=8, shuffle=True, rgb=False):
         """
         * imgs_per_batch - number of original images to use when generating batch with augmentation;
-        * shuffle - whether to reshuffle data on epoch start.
+        * shuffle - whether to reshuffle data on epoch start;
+        * rgb - whether to triple gray channel.
         """
 
         self.x = x
@@ -24,6 +25,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.input_shape = input_shape
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.rgb = rgb
 
         self.max_sigma = config.MAX_SIGMA # for blurring vertebrae level
         self.min_sigma = config.MIN_SIGMA
@@ -126,6 +128,10 @@ class DataGenerator(tf.keras.utils.Sequence):
         # add dummy color channel
         x_batch = np.expand_dims(x_batch, 3)
         y_batch = np.expand_dims(y_batch, 2)
+
+        # grayscale to RGB
+        if self.rgb:
+            x_batch = np.repeat(x_batch, 3, axis=-1)
 
         # pixel values to [-1, 1]
         x_batch = (x_batch / 255) * 2 - 1
