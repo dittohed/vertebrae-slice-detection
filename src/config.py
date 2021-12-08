@@ -21,8 +21,6 @@ BATCH_SIZE = 8
 ANYWHERE_RATE = 1 # 0.5 -> 1.0; prawdopodobieństwo, że wycinek może nie zawierać kręgu
 X_DIST = 10 # maksymalna odległość środka wycinka od środka obrazu
 OPTIMIZER = 'adam'
-LOSS = 'binary_crossentropy' # 'binary_crossentropy' or 'categorical_crossentropy'
-ACTIVATION = 'sigmoid' # 'softmax' or 'sigmoid'
 NUM_EPOCHS = 50
 
 # other

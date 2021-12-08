@@ -15,19 +15,22 @@ def normalize_data(x, y, spacings):
 
     x_norm = [] 
     y_norm = []
+    max_heights = [] # for transforming milimeters back to slice number during inference
 
     for i in range(y.shape[0]):
         img = zoom(x[i], [spacings[i][2], spacings[i][0]])
         img = reduce_hu_scale(img)
-
         x_norm.append(img)
-        y_norm.append(int(y[i]*spacings[i][2]))
 
-        # img[int(y[i]*spacings[i][2]), :] = 255
-        # cv2.imwrite(os.path.join(config.OUTPUT_PATH, f'{i}.jpg'), img)
+        # y_norm.append(int(y[i]*spacings[i][2]))
+        y_norm.append(
+            int(min(np.round(y[i]*spacings[i][2]), img.shape[0]))
+        )
+
+        max_heights.append(x[i].shape[0])
 
     # dtype=object due to images of different shapes
-    return np.array(x_norm, dtype=object), np.array(y_norm)
+    return np.array(x_norm, dtype=object), np.array(y_norm), y, np.array(max_heights)
 
 def reduce_hu_scale(img):
     """

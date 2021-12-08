@@ -13,13 +13,11 @@ def get_callbacks(subdir):
     Returns list of callbacks for training.
     """
 
-    # brakuje LRScheduler
-
-    es = EarlyStopping(monitor='val_loss', mode='min', 
+    es = EarlyStopping(monitor='val_distance', mode='min', 
                                   patience=10, restore_best_weights=True, verbose=1)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', 
+    reduce_lr = ReduceLROnPlateau(monitor='val_distance', mode='min', 
                                   factor=0.5, patience=5, verbose=1)
-    checkpoint = ModelCheckpoint(monitor='val_loss', mode='min', save_weights_only=True,
+    checkpoint = ModelCheckpoint(monitor='val_distance', mode='min', save_weights_only=True,
                                   filepath=os.path.join(config.CHECKPOINT_PATH, subdir, 'model'), 
                                   save_best_only=True, verbose=1)
     csv_logger = CSVLogger(os.path.join(config.LOGS_PATH, subdir+'.csv'))

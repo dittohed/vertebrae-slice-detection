@@ -11,8 +11,8 @@ from tensorflow.keras.applications import EfficientNetB7
 from tensorflow_addons.losses import SigmoidFocalCrossEntropy
 import numpy as np
 
-# from . import config
-import config
+from . import config
+# import config
 
 def down_block(input_tensor, n_filters, k_size=3, n_conv=2, 
               use_maxpool=True, pool_size=2, leaky_relu=False, bn_momentum=0.99):
@@ -155,11 +155,7 @@ def get_model_kanavati():
     up4 = BatchNormalization(momentum=0.8)(up4)
     up4 = Activation('relu')(up4)
 
-    if config.ACTIVATION == 'sigmoid':
-        outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
-    elif config.ACTIVATION == 'softmax':
-        outputs = Conv1D(1, 1, activation=None, padding='same')(up4)
-        outputs = Activation('softmax')(outputs)
+    outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
 
     model = Model(inputs=[inputs], outputs=[outputs])
     return model
@@ -190,11 +186,7 @@ def get_model_eff():
     up3 = up_block(up2, block1, 128, for_eff=True)
     up4 = up_block(up3, block0, 64, for_eff=True)
 
-    if config.ACTIVATION == 'sigmoid':
-        outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
-    elif config.ACTIVATION == 'softmax':
-        outputs = Conv1D(1, 1, activation=None, padding='same')(up4)
-        outputs = Activation('softmax')(outputs)
+    outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
 
     model = Model(inputs=[inputs], outputs=[outputs])
     return model
@@ -220,11 +212,7 @@ def get_model_own():
     up3 = up_block(up2, down2, 64, leaky_relu=True)
     up4 = up_block(up3, down1, 32, leaky_relu=True)
 
-    if config.ACTIVATION == 'sigmoid':
-        outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
-    elif config.ACTIVATION == 'softmax':
-        outputs = Conv1D(1, 1, activation='None', padding='same')(up4)
-        outputs = Activation('softmax')(outputs)
+    outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
 
     model = Model(inputs=[inputs], outputs=[outputs])
     return model
@@ -309,7 +297,7 @@ def get_model(model_name):
     elif model_name == 'Own':
         model = get_model_own()
 
-    model.compile(optimizer=config.OPTIMIZER, loss=config.LOSS, loss_weights=[1000],  
+    model.compile(optimizer=config.OPTIMIZER, loss='binary_crossentropy', # loss_weights=[1000],  
                 metrics=[distance])
     return model
 

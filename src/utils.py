@@ -117,19 +117,20 @@ def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
     plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
     plt.close()
 
-def split_data(x, y, names):
+def split_data(x, y, spacings, slices, heights):
     rs = ShuffleSplit(n_splits=1, test_size=.25, random_state=0)
     for train_idx, val_idx in rs.split(list(range(len(x)))):
         pass
 
     x_train = x[train_idx]
     y_train = y[train_idx]
-    names_train = names[train_idx]
     x_val = x[val_idx]
     y_val = y[val_idx]
-    names_val = names[val_idx]
+    spacings_val = spacings[val_idx]
+    heights_val = heights[val_idx]
+    slices_val = slices[val_idx]
 
-    return x_train, y_train, names_train, x_val, y_val, names_val
+    return x_train, y_train, x_val, y_val, spacings_val, slices_val, heights_val
 
 def prepare_for_inference(x, y):
     """
@@ -235,3 +236,17 @@ def save_imgs_dist(imgs, title):
     plt.title('Loaded images dimensions')
     plt.savefig(os.path.join(config.FIGURES_PATH, f'{title}.png'))
     plt.close()
+
+def mm_to_slices(y_pred, spacings, heights):
+    """
+    Converts one-hot (milimeters) predictions to CT slice numbers.
+    """
+
+    y_pred = np.argmax(y_pred, axis=1)
+    slices_pred = []
+    for i, y in enumerate(y_pred):
+        slices_pred.append(
+            int(min(np.round(y/spacings[i][2]), heights[i]))
+        )
+
+    return slices_pred
