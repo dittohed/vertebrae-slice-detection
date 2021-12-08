@@ -105,16 +105,6 @@ class GlobalMaxHorizontalPooling2D(_GlobalHorizontalPooling2D):
     def call(self, inputs):
         return K.max(inputs, axis=[2])
 
-# https://keras.io/api/metrics/
-def distance(y_true, y_pred):
-    x_true = K.flatten(K.argmax(y_true, axis=1)) # dla każdego obrazu max indeks (batch_size,)
-    valid = K.cast(K.sum(y_true, axis=(1, 2)) > config.THRESHOLD, 'float32') # jeżeli jest mocna predykcja
-
-    x_pred = K.flatten(K.argmax(y_pred, axis=1)) # dla każdego obrazu max indeks (batch_size,)
-    d = K.cast(x_true - x_pred, 'float32') # różnica w mm
-
-    return K.abs(valid * d) # * d # kwadratowa róznica w mm  (batch_size,)
-
 def get_model_kanavati():
     """
     Definiuje model odpowiadający CNNLine z repozytorium (apps/slice_detection/models.py).
@@ -217,8 +207,7 @@ def get_model_own():
     model = Model(inputs=[inputs], outputs=[outputs])
     return model
 
-def predict_whole(model, x):
-    # TODO: Czy zachowanie offsetu pomoże? To jest ok eksperyment!
+def predict_whole(model, x, step_size=32):
     """
     Predicts vertebrae level for whole-size images by 
     using non-overlapping, centered crops (windows) of training crops sizes.
@@ -229,24 +218,53 @@ def predict_whole(model, x):
     # prepare crops 
     crops = []
     num_crops = {}
+
     for i, img in enumerate(x):
         assert img.shape[0] >= config.INPUT_SHAPE[0]
         assert img.shape[1] >= config.INPUT_SHAPE[1]
 
-        num_crops[i] = int(np.ceil(img.shape[0] / config.INPUT_SHAPE[0]))
+        # config.INPUT_SHAPE[0] step-size version
+        # num_crops[i] = int(np.ceil(img.shape[0] / config.INPUT_SHAPE[0]))
+        # for j in range(num_crops[i]):
+        #     y_upper = min(j * config.INPUT_SHAPE[0], img.shape[0] - config.INPUT_SHAPE[0])
+        #     crops.append(img[y_upper : y_upper + config.INPUT_SHAPE[0], x_left : x_right])
 
         # so that crop are centered     
         x_center = img.shape[1] // 2 # TODO: środkować według krzywizny kręgosłupa
         x_left = x_center - config.INPUT_SHAPE[1] // 2
         x_right = x_center + config.INPUT_SHAPE[1] // 2
 
-        for j in range(num_crops[i]):
-            y_upper = min(j * config.INPUT_SHAPE[0], img.shape[0] - config.INPUT_SHAPE[0])
-            crops.append(img[y_upper : y_upper + config.INPUT_SHAPE[0], x_left : x_right])
+        num_crops[i] = 0
+        y_upper = 0
+        while True:
+            crops.append(img[y_upper : y_upper+config.INPUT_SHAPE[0], x_left : x_right])
+            num_crops[i] += 1
+
+            if y_upper + config.INPUT_SHAPE[0] == img.shape[0]:
+                break
+            elif y_upper + step_size + config.INPUT_SHAPE[0] > img.shape[0]:
+                y_upper = img.shape[0] - config.INPUT_SHAPE[0]
+            else:
+                y_upper += step_size
 
     crops = np.asarray(crops) # TODO: sprawdzić typ
     y_crops = model.predict(crops) # batch_size = 32 by default
-    # TODO: sprawdzić shape, zakładam, że (n_crops, 256)
+    
+    # import cv2
+    # import matplotlib.pyplot as plt
+    # for i in range(crops.shape[0]):
+    #     sample_img = crops[i]
+    #     sample_img = (sample_img + 1) / 2 * 255
+    #     sample_img = cv2.cvtColor(sample_img.astype(np.uint8), cv2.COLOR_GRAY2RGB)
+
+    #     sample_pred = np.argmax(y_crops[i])
+
+    #     sample_img[sample_pred, :, 0] = 255
+
+    #     plt.imshow(sample_img, cmap='gray')
+    #     plt.title(f'prediction: {sample_pred}, confidence: {y_crops[i][sample_pred]}')
+    #     plt.savefig(f'./output/tmp/{i}crop.png')
+    #     plt.close() 
 
     # determine predicted vertebrae location using max probability
     y = []
@@ -254,32 +272,56 @@ def predict_whole(model, x):
     for key in num_crops:
         r_curr = l_curr + num_crops[key]
         y_group = np.stack(y_crops[l_curr : r_curr]) # predictions associated with single image
+        y_group = np.squeeze(y_group) # drop last dummy channel
 
-        max_prob = np.max(y_group)
-        # if max_prob > config.THRESHOLD:
-        #     # crop with maximum probability
-        #     max_prob_crop = np.argmax(np.max(y_group, axis=-1)) 
-        #     # vertebrae level within crop with maximum probability
-        #     max_prob_crop_idx = np.argmax(y_group, axis=-1)[max_prob_crop]
-        #     # verebrae level within whole image
-        #     y_pred = min(max_prob_crop * config.INPUT_SHAPE[0], 
-        #                 x[key].shape[0] - config.INPUT_SHAPE[0]) + max_prob_crop_idx
-        # else:
-        #     y_pred = -1 # -1 if no vertebrae predicted
-        
-        # crop with maximum probability
-        max_prob_crop = np.argmax(np.max(y_group, axis=-1)) 
-        # vertebrae level within crop with maximum probability
-        max_prob_crop_idx = np.argmax(y_group, axis=-1)[max_prob_crop]
-        # verebrae level within whole image
-        y_pred = min(max_prob_crop * config.INPUT_SHAPE[0], 
-                    x[key].shape[0] - config.INPUT_SHAPE[0]) + max_prob_crop_idx
+        max_prob = np.amax(y_group)
+        if max_prob > 0: # TODO: change to config.THRESHOLD
+            # crop with maximum probability
+            max_prob_crop = np.argmax(np.amax(y_group, axis=-1)) 
+            # vertebrae level within cimport cv2
+    # import matplotlib.pyplot as plt
+    # for i in range(crops.shape[0]):
+    #     sample_img = crops[i]
+    #     sample_img = (sample_img + 1) / 2 * 255
+    #     sample_img = cv2.cvtColor(sample_img.astype(np.uint8), cv2.COLOR_GRAY2RGB)
+
+    #     sample_pred = np.argmax(y_crops[i])
+
+    #     sample_img[sample_pred, :, 0] = 255
+
+    #     plt.imshow(sample_img, cmap='gray')
+    #     plt.title(f'prediction: {sample_pred}, confidence: {y_crops[i][sample_pred]}')
+    #     plt.savefig(f'./output/tmp/{i}crop.png')
+    #     plt.close() rop with maximum probability
+            max_prob_crop_idx = np.argmax(y_group, axis=-1)[max_prob_crop]
+            
+            # # config.INPUT_SHAPE[0] step-size version
+            # y_pred = min(max_prob_crop * config.INPUT_SHAPE[0], 
+            #             x[key].shape[0] - config.INPUT_SHAPE[0]) + max_prob_crop_idx
+
+            # verebrae level within whole image
+            y_pred = min(max_prob_crop * step_size, 
+                        x[key].shape[0] - config.INPUT_SHAPE[0]) + max_prob_crop_idx
+        else:
+            y_pred = -1 # -1 if no vertebrae predicted
 
         y.append(y_pred) 
         l_curr = r_curr
 
     y = np.asarray(y)
     return y
+
+# https://keras.io/api/metrics/
+def distance(y_true, y_pred):
+    x_true = K.flatten(K.argmax(y_true, axis=1)) # dla każdego obrazu max indeks (batch_size, 1)
+    valid = K.cast(K.sum(y_true, axis=(1, 2)) > config.THRESHOLD, 'float32') 
+    # jeżeli suma elementów wektora jest większa niż 0.5
+    # pewnie się przydaje dla rozmytych, ale to powinno być jakoś inaczej
+
+    x_pred = K.flatten(K.argmax(y_pred, axis=1)) # dla każdego obrazu max indeks (batch_size, 1)
+    d = K.cast(x_true - x_pred, 'float32') # różnica w mm
+
+    return K.abs(valid * d) # * d  to kwadratowa róznica w mm (batch_size,)
 
 def get_model(model_name):
     """

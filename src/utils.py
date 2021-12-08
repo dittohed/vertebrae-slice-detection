@@ -250,3 +250,18 @@ def mm_to_slices(y_pred, spacings, heights):
         )
 
     return slices_pred
+
+def distance(y_true, y_pred):
+    """
+    Returns a mean absolute distance between real value labels.
+    """
+
+    accum = 0
+    n_preds = 0
+
+    for i in range(y_pred.shape[0]):
+        if y_pred[i] != -1: # no prediction
+            accum += abs(y_true[i]-y_pred[i])
+            n_preds += 1
+
+    return accum / n_preds
