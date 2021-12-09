@@ -97,7 +97,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                                 img, label, self.input_shape)
 
             # (optional) saves a visual comparison for debugging
-            # utils.save_orig_crop_comparison(img, label, crop_img, crop_label, img_idx)
+            utils.save_orig_crop_comparison(img, label, crop_img, crop_label, img_idx)
             
             x_batch[i] = crop_img
             y_batch[i] = crop_label

@@ -21,6 +21,12 @@ if __name__ == '__main__':
 
     gen_train = generator.DataGenerator(x_train, y_train, 
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
+
+    import sys
+    for i, (x_samp, y_samp) in enumerate(gen_train):
+        if i == 2:
+            break
+
     gen_val = generator.DataGenerator(x_val, y_val, validation=True,
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
 

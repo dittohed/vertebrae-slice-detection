@@ -62,45 +62,6 @@ def pad_img(img, label, input_shape):
 
     # top padding influences label
     return img, label + int(h_pads[0])
-
-def get_random_crops(img, label, input_shape, n_crops):
-    # TODO: border_shift?
-    """
-    Returns `n_samples` image crops of `input_shape` shape and updated labels,
-    with chance of not preserving label with `config.ANYWHERE_RATE` rate.
-    """
-
-    crops = []
-    nolabel_indices = [] # for keeping track of crops with no vertrebrae
-    labels = []
-    for i in range(n_crops):
-
-        # pick upper corner for crop
-        if np.random.rand() < config.ANYWHERE_RATE:
-            # crop anywhere
-            upper_y = np.random.randint(0, img.shape[0]-input_shape[0])
-            upper_x = np.random.randint(0, img.shape[1]-input_shape[1])
-        else:
-            # crop so that it contains vertebrae (with some distance to border)
-            upper_y = np.random.randint(
-                max(0, label-input_shape[0]+config.Y_DIST), 
-                min(img.shape[0]-input_shape[0], label-config.Y_DIST))
-            upper_x = np.random.randint(
-                max(0, input_shape[1]//2-config.X_DIST),
-                min(img.shape[1]-input_shape[1], input_shape[1]//2+config.X_DIST)
-            )
-
-        crops.append(img[upper_y : upper_y+input_shape[0],
-                            upper_x : upper_x+input_shape[1]])
-        
-        # calculate new label after cropping
-        if label - upper_y >= img.shape[0] or upper_y > label:
-            nolabel_indices.append(i)
-            labels.append(-1)
-        else:
-            labels.append(label-upper_y)
-
-    return np.stack(crops), np.stack(labels), nolabel_indices
     
 def get_random_crop(img, label, input_shape):
     """
