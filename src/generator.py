@@ -122,8 +122,9 @@ class DataGenerator(tf.keras.utils.Sequence):
         #     utils.save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx)
 
         # label blur
-        if not self.validation:
-            y_batch = preprocessing.get_heatmap(y_batch, sigma)
+        # TODO: uncomment?
+        # if not self.validation:
+        #     y_batch = preprocessing.get_heatmap(y_batch, sigma)
 
         # add dummy color channel
         x_batch = np.expand_dims(x_batch, 3)

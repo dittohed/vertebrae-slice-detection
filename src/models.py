@@ -314,7 +314,8 @@ def predict_whole(model, x, step_size=32):
 # https://keras.io/api/metrics/
 def distance(y_true, y_pred):
     x_true = K.flatten(K.argmax(y_true, axis=1)) # dla każdego obrazu max indeks (batch_size, 1)
-    valid = K.cast(K.sum(y_true, axis=(1, 2)) > config.THRESHOLD, 'float32') 
+    # TODO: uncomment?
+    # valid = K.cast(K.sum(y_true, axis=(1, 2)) > config.THRESHOLD, 'float32') 
     # jeżeli suma elementów wektora jest większa niż 0.5
     # pewnie się przydaje dla rozmytych, ale to powinno być jakoś inaczej
 
