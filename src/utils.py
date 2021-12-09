@@ -136,19 +136,19 @@ def prepare_for_inference(x, y):
     """
     Prepares data for model's inference (same as training data processing).
     Takes 2D images and integer labels,
-    returns 3D images and one-hot labels.
+    returns 3D images and one-hot labels (with dummy color channel).
     """
 
     y_new = []
     for i in range(x.shape[0]):
         # both width and height should be dividible by 32 (maxpooling and concats)
+        # and not less than training crops size
 
-        # WARNING! 3 lines below were used to input full-size images to U-Net (and no if)
-        new_height = int(np.ceil((x[i].shape[0] / 32)) * 32)
-        new_width = int(np.ceil((x[i].shape[1] / 32)) * 32)
+        new_height = int(
+            max(np.ceil((x[i].shape[0] / 32)) * 32, config.INPUT_SHAPE[0]))
+        new_width = int(
+            max(np.ceil((x[i].shape[1] / 32)) * 32, config.INPUT_SHAPE[1]))
         x[i], y[i] = preprocessing.pad_img(x[i], y[i], (new_height, new_width))
-        # if x[i].shape[0] < config.INPUT_SHAPE[0] or x[i].shape[1] < config.INPUT_SHAPE[1]:
-        #     x[i], y[i] = preprocessing.pad_img(x[i], y[i], config.INPUT_SHAPE[:-1]) 
 
         # add dummy color channel
         x[i] = np.expand_dims(x[i], 2).astype(np.float32)

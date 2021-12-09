@@ -6,13 +6,13 @@ BatchNormalization, Activation, LeakyReLU, \
 add, Layer, Input, InputSpec, concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras import backend as K
 from tensorflow.keras.applications import EfficientNetB7
 from tensorflow_addons.losses import SigmoidFocalCrossEntropy
+from tensorflow.keras import backend as K
 import numpy as np
 
 from . import config
-# import config
+from . import metrics
 
 def down_block(input_tensor, n_filters, k_size=3, n_conv=2, 
               use_maxpool=True, pool_size=2, leaky_relu=False, bn_momentum=0.99):
@@ -278,21 +278,7 @@ def predict_whole(model, x, step_size=32):
         if max_prob > 0: # TODO: change to config.THRESHOLD
             # crop with maximum probability
             max_prob_crop = np.argmax(np.amax(y_group, axis=-1)) 
-            # vertebrae level within cimport cv2
-    # import matplotlib.pyplot as plt
-    # for i in range(crops.shape[0]):
-    #     sample_img = crops[i]
-    #     sample_img = (sample_img + 1) / 2 * 255
-    #     sample_img = cv2.cvtColor(sample_img.astype(np.uint8), cv2.COLOR_GRAY2RGB)
-
-    #     sample_pred = np.argmax(y_crops[i])
-
-    #     sample_img[sample_pred, :, 0] = 255
-
-    #     plt.imshow(sample_img, cmap='gray')
-    #     plt.title(f'prediction: {sample_pred}, confidence: {y_crops[i][sample_pred]}')
-    #     plt.savefig(f'./output/tmp/{i}crop.png')
-    #     plt.close() rop with maximum probability
+            # vertebrae level within crop with maximum probability
             max_prob_crop_idx = np.argmax(y_group, axis=-1)[max_prob_crop]
             
             # # config.INPUT_SHAPE[0] step-size version
@@ -311,19 +297,6 @@ def predict_whole(model, x, step_size=32):
     y = np.asarray(y)
     return y
 
-# https://keras.io/api/metrics/
-def distance(y_true, y_pred):
-    x_true = K.flatten(K.argmax(y_true, axis=1)) # dla każdego obrazu max indeks (batch_size, 1)
-    # TODO: uncomment?
-    # valid = K.cast(K.sum(y_true, axis=(1, 2)) > config.THRESHOLD, 'float32') 
-    # jeżeli suma elementów wektora jest większa niż 0.5
-    # pewnie się przydaje dla rozmytych, ale to powinno być jakoś inaczej
-
-    x_pred = K.flatten(K.argmax(y_pred, axis=1)) # dla każdego obrazu max indeks (batch_size, 1)
-    d = K.cast(x_true - x_pred, 'float32') # różnica w mm
-
-    return K.abs(valid * d) # * d  to kwadratowa róznica w mm (batch_size,)
-
 def get_model(model_name):
     """
     Returns a compiled model, according to given model name.
@@ -340,8 +313,8 @@ def get_model(model_name):
     elif model_name == 'Own':
         model = get_model_own()
 
-    model.compile(optimizer=config.OPTIMIZER, loss='binary_crossentropy', # loss_weights=[1000],  
-                metrics=[distance])
+    model.compile(optimizer=config.OPTIMIZER, loss='binary_crossentropy', 
+                metrics=[metrics.distance, metrics.pos_conf, metrics.neg_conf])
     return model
 
 if __name__ == '__main__':

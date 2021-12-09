@@ -27,5 +27,5 @@ if __name__ == '__main__':
     model = models.get_model(config.MODEL_NAME)
     history = model.fit(gen_train, validation_data=gen_val,
                     epochs=config.NUM_EPOCHS, 
-                    callbacks=callbacks.get_callbacks('crops_nosigma'))
-    utils.plot_learning(history, 'crops_nosigma')
+                    callbacks=callbacks.get_callbacks('crops_nosigma_thresh0'))
+    utils.plot_learning(history, 'crops_nosigma_thresh0')
