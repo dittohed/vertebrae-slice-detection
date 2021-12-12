@@ -13,7 +13,7 @@ import src.metrics as metrics
 
 if __name__ == '__main__':
     model = models.get_model('Kanavati')
-    model.load_weights(os.path.join(config.CHECKPOINT_PATH, 'crops', 'model'))
+    model.load_weights(os.path.join(config.CHECKPOINT_PATH, 'crops_nosigma_thresh0', 'model'))
 
     x, y, spacings, names = utils.load_data(config.USE_FRONT)
     x, y, slices, heights = preprocessing.normalize_data(x[:64], y[:64], spacings)
