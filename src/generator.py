@@ -56,7 +56,6 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         batch_indices = self.indices[index * self.batch_size : 
                                     min(len(self.indices), (index+1) * self.batch_size)]
-        self.used_indices.extend(batch_indices.tolist())
 
         x, y = self.__gen_batch(batch_indices)
         return x, y 
