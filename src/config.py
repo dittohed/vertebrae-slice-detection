@@ -15,11 +15,8 @@ RGB = False # whether to triple gray channel (for EFficientNet)
 
 # training
 MODEL_NAME = 'Kanavati'
-MAX_SIGMA = 10
-MIN_SIGMA = 1.5 # było 3, ale zmieniłem na takie jak w publikacji, powinno być raczej 0.1
 BATCH_SIZE = 8
 ANYWHERE_RATE = 1 # 0.5 -> 1.0; prawdopodobieństwo, że wycinek może nie zawierać kręgu
-X_DIST = 10 # maksymalna odległość środka wycinka od środka obrazu
 OPTIMIZER = 'adam'
 NUM_EPOCHS = 50
 

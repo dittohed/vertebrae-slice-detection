@@ -27,14 +27,8 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.shuffle = shuffle
         self.rgb = rgb
 
-        self.max_sigma = config.MAX_SIGMA # for blurring vertebrae level
-        self.min_sigma = config.MIN_SIGMA
-        self.epoch = 0 # for controlling sigma value
         self.indices = np.arange(x.shape[0])
-
         self.aug_seq = preprocessing.get_augmentation_sequence().to_deterministic()
-        self.curr_idx = 0 # TODO: for tests only, to be deleted
-        self.used_indices = [] # TODO: for test only, to be deleted
 
         if self.shuffle and not self.validation:
             np.random.shuffle(self.indices)
@@ -67,15 +61,6 @@ class DataGenerator(tf.keras.utils.Sequence):
         x, y = self.__gen_batch(batch_indices)
         return x, y 
 
-    def __next__(self):
-        # TODO: for tests only, to be deleted
-        x, y = self.__getitem__(self.curr_idx)
-        self.curr_idx += 1
-        if self.curr_idx >= self.__len__():
-            self.curr_idx = 0
-        
-        return x. y
-
     def __gen_batch(self, batch_indices):
         """
         Returns a generated batch given images indices.
@@ -85,9 +70,6 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         x_batch = np.zeros((len(batch_indices), self.input_shape[0], self.input_shape[1]))
         y_batch = np.zeros((len(batch_indices)))
-
-        # gradually decreasing for better learning
-        sigma = max(self.max_sigma - self.epoch, self.min_sigma)
 
         for i, img_idx in enumerate(batch_indices):
             img = self.x[img_idx]
@@ -121,11 +103,6 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         #     utils.save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx)
 
-        # label blur
-        # TODO: uncomment?
-        # if not self.validation:
-        #     y_batch = preprocessing.get_heatmap(y_batch, sigma)
-
         # add dummy color channel
         x_batch = np.expand_dims(x_batch, 3)
         y_batch = np.expand_dims(y_batch, 2)
@@ -140,7 +117,6 @@ class DataGenerator(tf.keras.utils.Sequence):
         return x_batch, y_batch
 
     def on_epoch_end(self):
-        self.epoch += 1
         if self.shuffle and not self.validation:
             np.random.shuffle(self.indices)
 

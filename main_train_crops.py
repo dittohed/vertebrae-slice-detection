@@ -7,9 +7,6 @@ import src.models as models
 import src.callbacks as callbacks
 
 if __name__ == '__main__':
-
-    print('Validating using crops.')
-
     x, y, spacings, names = utils.load_data(config.USE_FRONT)
     x, y, slices, heights = preprocessing.normalize_data(x, y, spacings)
 
@@ -22,6 +19,9 @@ if __name__ == '__main__':
     gen_train = generator.DataGenerator(x_train, y_train, 
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
 
+    # or
+    # x_val, y_val = utils.prepare_for_inference(x_val, y_val) 
+    # gen_val = generator.InferenceDataGenerator(x_val, y_val)
     gen_val = generator.DataGenerator(x_val, y_val, validation=True,
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
 
@@ -30,3 +30,4 @@ if __name__ == '__main__':
                     epochs=config.NUM_EPOCHS, 
                     callbacks=callbacks.get_callbacks('crops_nosigma_thresh0'))
     utils.plot_learning(history, 'crops_nosigma_thresh0')
+    # TODO: określając nazwy dostaję odpowiedni checkpoint, logi i wykresy

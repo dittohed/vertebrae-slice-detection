@@ -11,6 +11,8 @@ from tensorflow_addons.losses import SigmoidFocalCrossEntropy
 from tensorflow.keras import backend as K
 import numpy as np
 
+# import config
+# import metrics
 from . import config
 from . import metrics
 
@@ -155,28 +157,55 @@ def get_model_eff():
     Coś tam mam, ale najlepiej byłoby dobrać wersję, która będzie mieć najbardziej zbliżony shape.
     https://keras.io/examples/vision/image_classification_efficientnet_fine_tuning/
     """
-    inputs = Input(shape=(None, None, 3))
 
-    # TODO: be careful with scaling, normalization and 3 channels
-    backbone = EfficientNetB7(weights='imagenet', include_top=False, input_tensor=inputs)
+    inputs = Input(shape=(None, None, 3))
+    from tensorflow.keras.applications import EfficientNetB3
+    backbone = EfficientNetB3(weights='imagenet', include_top=False, input_tensor=inputs)
     for layer in backbone.layers:
         if isinstance(layer, BatchNormalization):
             layer.trainable = False
 
-    block0 = backbone.get_layer('normalization').output 
-    block1 = backbone.get_layer('block1d_add').output
-    block2 = backbone.get_layer('block2g_add').output
-    block3 = backbone.get_layer('block3g_add').output
-    block4 = backbone.get_layer('block4j_add').output
+    # TODO: be careful with scaling, normalization and 3 channels
+    # backbone = EfficientNetB7(weights='imagenet', include_top=False, input_tensor=inputs)
+    # for layer in backbone.layers:
+    #     if isinstance(layer, BatchNormalization):
+    #         layer.trainable = False
 
-    conv_mid = GlobalMaxHorizontalPooling2D()(block4)
+    # block0 = backbone.get_layer('normalization').output 
+    # block1 = backbone.get_layer('block1d_add').output
+    # block2 = backbone.get_layer('block2g_add').output
+    # block3 = backbone.get_layer('block3g_add').output
+    # block4 = backbone.get_layer('block4j_add').output
 
-    up1 = up_block(conv_mid, block3, 256, for_eff=True)
-    up2 = up_block(up1, block2, 128, for_eff=True)
-    up3 = up_block(up2, block1, 128, for_eff=True)
-    up4 = up_block(up3, block0, 64, for_eff=True)
+    # conv_mid = GlobalMaxHorizontalPooling2D()(block4)
 
-    outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
+    # up1 = up_block(conv_mid, block3, 256, for_eff=True)
+    # up2 = up_block(up1, block2, 128, for_eff=True)
+    # up3 = up_block(up2, block1, 128, for_eff=True)
+    # up4 = up_block(up3, block0, 64, for_eff=True)
+
+    block1 = backbone.get_layer('block1b_add').output # 128x192
+    block2 = backbone.get_layer('block2c_add').output # 64x96
+    block3 = backbone.get_layer('block3c_add').output # 32x48
+    block4 = backbone.get_layer('block4e_add').output # 16x24
+    block5 = backbone.get_layer('block5e_add').output # 16x24, not used in connections
+    block6 = backbone.get_layer('block6f_add').output # 8x12
+
+    conv_mid = GlobalMaxHorizontalPooling2D()(block6)
+
+    up1 = up_block(conv_mid, block4, 256, for_eff=True)
+    up2 = up_block(up1, block3, 128, for_eff=True)
+    up3 = up_block(up2, block2, 128, for_eff=True)
+    up4 = up_block(up3, block1, 64, for_eff=True)
+
+    up5 = Conv1DTranspose(64, 2, strides=2, padding='same')(up4)
+    up5 = Dropout(0.25)(up5)
+    for _ in range(2):
+        up5 = Conv1D(64, 3, padding='same')(up5)
+        up5 = BatchNormalization()(up5)
+        up5 = Activation('relu')(up5)
+
+    outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up5)
 
     model = Model(inputs=[inputs], outputs=[outputs])
     return model
@@ -185,7 +214,7 @@ def get_model_own():
     """
     Model a'la nnU-Net (bez maxpoolingu, instance normalization? i leaky ReLU 1e-2)
     """
-    # TODO: instance normalization?
+
     input_shape = (None, None, 1)
     inputs = Input(input_shape)
 
@@ -264,7 +293,7 @@ def predict_whole(model, x, step_size=32):
     #     plt.imshow(sample_img, cmap='gray')
     #     plt.title(f'prediction: {sample_pred}, confidence: {y_crops[i][sample_pred]}')
     #     plt.savefig(f'./output/tmp/{i}crop.png')
-    #     plt.close() 
+    #     plt.close() ``
 
     # determine predicted vertebrae location using max probability
     y = []
