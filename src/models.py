@@ -342,7 +342,7 @@ def get_model(model_name):
     elif model_name == 'Own':
         model = get_model_own()
 
-    model.compile(optimizer=config.OPTIMIZER, loss='binary_crossentropy', 
+    model.compile(optimizer=config.OPTIMIZER, loss=SigmoidFocalCrossEntropy(), 
                 metrics=[metrics.distance, metrics.pos_conf, metrics.neg_conf])
     return model
 
