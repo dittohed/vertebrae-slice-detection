@@ -160,36 +160,28 @@ def get_model_eff():
 
     inputs = Input(shape=(None, None, 3))
     from tensorflow.keras.applications import EfficientNetB3
-    backbone = EfficientNetB3(weights='imagenet', include_top=False, input_tensor=inputs)
-    for layer in backbone.layers:
-        if isinstance(layer, BatchNormalization):
-            layer.trainable = False
-
-    # TODO: be careful with scaling, normalization and 3 channels
-    # backbone = EfficientNetB7(weights='imagenet', include_top=False, input_tensor=inputs)
+    # backbone = EfficientNetB3(weights='imagenet', include_top=False, input_tensor=inputs)
+    backbone = EfficientNetB7(weights='imagenet', include_top=False, input_tensor=inputs)
     # for layer in backbone.layers:
     #     if isinstance(layer, BatchNormalization):
     #         layer.trainable = False
+    backbone.summary()
 
-    # block0 = backbone.get_layer('normalization').output 
-    # block1 = backbone.get_layer('block1d_add').output
-    # block2 = backbone.get_layer('block2g_add').output
-    # block3 = backbone.get_layer('block3g_add').output
-    # block4 = backbone.get_layer('block4j_add').output
+    # B3
+    # block1 = backbone.get_layer('block1b_add').output # 128x192
+    # block2 = backbone.get_layer('block2c_add').output # 64x96
+    # block3 = backbone.get_layer('block3c_add').output # 32x48
+    # block4 = backbone.get_layer('block4e_add').output # 16x24
+    # block5 = backbone.get_layer('block5e_add').output # 16x24, not used in connections
+    # block6 = backbone.get_layer('block6f_add').output # 8x12
 
-    # conv_mid = GlobalMaxHorizontalPooling2D()(block4)
-
-    # up1 = up_block(conv_mid, block3, 256, for_eff=True)
-    # up2 = up_block(up1, block2, 128, for_eff=True)
-    # up3 = up_block(up2, block1, 128, for_eff=True)
-    # up4 = up_block(up3, block0, 64, for_eff=True)
-
-    block1 = backbone.get_layer('block1b_add').output # 128x192
-    block2 = backbone.get_layer('block2c_add').output # 64x96
-    block3 = backbone.get_layer('block3c_add').output # 32x48
-    block4 = backbone.get_layer('block4e_add').output # 16x24
-    block5 = backbone.get_layer('block5e_add').output # 16x24, not used in connections
-    block6 = backbone.get_layer('block6f_add').output # 8x12
+    # B7
+    block1 = backbone.get_layer('block1d_add').output # 128x192
+    block2 = backbone.get_layer('block2g_add').output # 64x96
+    block3 = backbone.get_layer('block3g_add').output # 32x48
+    block4 = backbone.get_layer('block4j_add').output # 16x24
+    block5 = backbone.get_layer('block5j_add').output # 16x24, not used in connections
+    block6 = backbone.get_layer('block6m_add').output # 8x12
 
     conv_mid = GlobalMaxHorizontalPooling2D()(block6)
 

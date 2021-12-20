@@ -2,32 +2,28 @@ from tensorflow.keras import callbacks
 import src.config as config
 import src.generator as generator
 import src.utils as utils
+import src.loaders as loaders
 import src.preprocessing as preprocessing
 import src.models as models
 import src.callbacks as callbacks
 
 if __name__ == '__main__':
-    x, y, spacings, names = utils.load_data(config.USE_FRONT)
-    x, y, slices, heights = preprocessing.normalize_data(x, y, spacings)
+    # TODO: L3 vs T12
+    model = models.get_model(config.MODEL_NAME)
 
-    # optional
-    # utils.save_imgs_dist(x, 'front' if experiment[0] else 'sagittal')
-
-    x_train, y_train, \
-        x_val, y_val, spacings_val, slices_val, heights_val = utils.split_data(x, y, spacings, slices, heights)
+    if config.V_LEVEL == 'L3':
+        x_train, x_val, y_train, y_val = loaders.get_data_l3()
+    elif config.V_LEVEL == 'T12':
+        x_train, x_val, y_train, y_val = loaders.get_data_t12()
+        # załadowanie wag jeżeli pretrenowany
 
     gen_train = generator.DataGenerator(x_train, y_train, 
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
-
-    # or
-    # x_val, y_val = utils.prepare_for_inference(x_val, y_val) 
-    # gen_val = generator.InferenceDataGenerator(x_val, y_val)
     gen_val = generator.DataGenerator(x_val, y_val, validation=True,
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
-
-    model = models.get_model(config.MODEL_NAME)
+    
     history = model.fit(gen_train, validation_data=gen_val,
                     epochs=config.NUM_EPOCHS, 
-                    callbacks=callbacks.get_callbacks('crops_nosigma_thresh0'))
-    utils.plot_learning(history, 'crops_nosigma_thresh0')
+                    callbacks=callbacks.get_callbacks(config.EXP_NAME))
+    utils.plot_learning(history, config.EXP_NAME)
     # TODO: określając nazwy dostaję odpowiedni checkpoint, logi i wykresy

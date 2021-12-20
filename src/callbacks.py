@@ -31,6 +31,11 @@ class PreviewOutput(Callback):
     """
 
     def __init__(self, x, y, subdir):
+        """
+        Takes full-size images preprocessed by 
+        utils.prepare_for_inference function.
+        """
+
         super().__init__()
         self.x = x
         self.y = y

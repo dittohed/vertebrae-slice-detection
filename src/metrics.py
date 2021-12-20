@@ -6,7 +6,7 @@ def distance(y_true, y_pred):
     x_pred = K.flatten(K.argmax(y_pred, axis=1))
 
     # mierz odległość, jeżeli na wycinku jest krąg
-    pos = K.cast(K.sum(y_true, axis=(1, 2)) > 0, 'float32') # TODO: było 0.5 zamiast 0, robi różnicę?
+    pos = K.cast(K.sum(y_true, axis=(1, 2)) > 0, 'float32')
     dist = K.cast(x_true - x_pred, 'float32') # różnica w mm
     
     return K.abs(pos * dist) # (batch_size,) shape

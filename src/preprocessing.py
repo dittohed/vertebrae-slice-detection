@@ -1,36 +1,9 @@
-import os
-
 import numpy as np
 import cv2
-from scipy.ndimage import zoom
-from scipy.ndimage.filters import gaussian_filter1d
+
 from imgaug import augmenters as iaa
 
 from . import config
-
-def normalize_data(x, y, spacings):
-    """
-    Normalizes images spatially and in regard to pixel values.
-    """
-
-    x_norm = [] 
-    y_norm = []
-    max_heights = [] # for transforming milimeters back to slice number during inference
-
-    for i in range(y.shape[0]):
-        img = zoom(x[i], [spacings[i][2], spacings[i][0]])
-        img = reduce_hu_scale(img)
-        x_norm.append(img)
-
-        # y_norm.append(int(y[i]*spacings[i][2]))
-        y_norm.append(
-            int(min(np.round(y[i]*spacings[i][2]), img.shape[0]))
-        )
-
-        max_heights.append(x[i].shape[0])
-
-    # dtype=object due to images of different shapes
-    return np.array(x_norm, dtype=object), np.array(y_norm), y, np.array(max_heights)
 
 def reduce_hu_scale(img):
     """
@@ -41,7 +14,7 @@ def reduce_hu_scale(img):
     img = (img-config.HU_LOWER) / (config.HU_UPPER-config.HU_LOWER)
     img *= 255
 
-    return img.astype(np.float32) # TODO: czy na pewno float32?, tutaj chyba jest konwersja na ndarray
+    return img.astype(np.float32)
 
 def pad_img(img, label, input_shape):
     # TODO: uwaga, wcześniej nie brałem pod uwagę
@@ -88,7 +61,7 @@ def get_random_crop(img, label, input_shape):
     return crop_img, crop_label
 
 # TODO: ogarnąć
-def augment_slice_thickness(img, max_r=5): 
+def augment_slice_thickness(img, max_r=5):
     r = np.random.randint(1, max_r+1)
     return np.expand_dims(cv2.resize(img[::r], img.shape[:2][::-1]), 2)
 
@@ -115,7 +88,7 @@ def get_augmentation_sequence():
 
     aug_seq = iaa.Sequential([
         iaa.Sometimes(0.5, iaa.Fliplr(0.5)), # horizontal flip
-        iaa.Sometimes(0.1, iaa.Add((-70, 70))), # adding to pixel values
+        iaa.Sometimes(0.2, iaa.Add((-70, 70))), # adding to pixel values, changed 0.1 to 0.2
         iaa.Sometimes(0.5, iaa.Affine(
             scale={'x': (0.8, 1.2), 'y': (0.8, 1.2)} 
         )), # skaluje obrazy do 80-120% wymiaru, niezależnie dla wymiarów
@@ -130,17 +103,10 @@ def get_augmentation_sequence():
                                       iaa.CoarseSaltAndPepper(p=0.2, size_percent=0.01),
                                       iaa.CoarseSalt(p=0.2, size_percent=0.02)
                                       ])),
-        iaa.Sometimes(0.25, slice_thickness_augmenter) 
+        iaa.Sometimes(0.4, slice_thickness_augmenter) # changed 0.25 to 0.4
     ])
 
     return aug_seq
-
-def get_heatmap(y_batch, sigma):
-    """
-    Returns heatmaps created by applying gaussian blur on one-hot vectors.
-    """
-
-    return gaussian_filter1d(y_batch, sigma)
 
 def clip_imgs(imgs):
     """

@@ -1,7 +1,3 @@
-from src.generator_tf import DataGenerator
+import src.loaders as loaders
 
-dataset = DataGenerator().get_tfdataset()
-for x, y in dataset.as_numpy_iterator():
-    print(x.shape)
-    print(y.shape)
-
+loaders.get_data_t12()

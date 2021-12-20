@@ -1,6 +1,7 @@
 import os
 
 from sklearn.model_selection import ShuffleSplit
+
 import numpy as np
 import pandas as pd
 import cv2
@@ -9,42 +10,6 @@ import imgaug as ia
 
 from . import config
 from . import preprocessing
-
-def load_data(use_front):
-    """
-    Loads and returns all the needed data.
-    """
-
-    # loads dict of ndarrays containing unnormalized MIPs
-    data = np.load(os.path.join(config.DATA_PATH, 'l3_dataset.npz'), allow_pickle=True)
-    
-    if use_front:
-        x = data['images_f']
-    else:
-        x = data['images_s']
-    # x contains images of different shapes
-
-    names = data['names'] # examination names
-    y = np.zeros_like(names, dtype=np.float32) # array of shape of ex_names
-    y_data = data['ydata'] # for loading labels into y
-    spacings = data['spacings'] # triplet for each image
-
-    data.close()
-
-    # TODO: so far, some weird way of loading labels
-    for _, v in y_data.item().items():
-        y += v
-    y /= len(y_data.item()) # diving by 2
-
-    return x, y, spacings, names
-
-def save_preprocessed(x, y, names):
-    """
-    Saves preprocessed images to .npz file.
-    """
-
-    np.savez_compressed(os.path.join(config.DATA_PATH, 'preprocessed'),
-                        x=x, y=y, names=names)
 
 def y_to_keypoint(x, y):
     """
@@ -70,7 +35,7 @@ def y_to_onehot(y, input_shape):
 
     return y_onehot
 
-# TODO; delete
+# TODO; opis
 def save_orig_crop_comparison(img, label, crop_img, crop_label, img_idx):
     _, axs = plt.subplots(1, 2, figsize=(20, 20))
     for ax in axs:
@@ -93,7 +58,7 @@ def save_orig_crop_comparison(img, label, crop_img, crop_label, img_idx):
     plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
     plt.close()
 
-# TODO; delete
+# TODO; opis
 def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
     fig, axs = plt.subplots(1, 2, figsize=(20, 20))
     for ax in axs:
@@ -116,21 +81,6 @@ def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
 
     plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
     plt.close()
-
-def split_data(x, y, spacings, slices, heights):
-    rs = ShuffleSplit(n_splits=1, test_size=.25, random_state=0)
-    for train_idx, val_idx in rs.split(list(range(len(x)))):
-        pass
-
-    x_train = x[train_idx]
-    y_train = y[train_idx]
-    x_val = x[val_idx]
-    y_val = y[val_idx]
-    spacings_val = spacings[val_idx]
-    heights_val = heights[val_idx]
-    slices_val = slices[val_idx]
-
-    return x_train, y_train, x_val, y_val, spacings_val, slices_val, heights_val
 
 def prepare_for_inference(x, y):
     """
