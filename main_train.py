@@ -1,3 +1,7 @@
+# TODO: gen summaries
+
+import os
+
 import src.config as config
 import src.generator as generator
 import src.utils as utils
@@ -6,14 +10,13 @@ import src.models as models
 import src.callbacks as callbacks
 
 if __name__ == '__main__':
-    # TODO: L3 vs T12
     model = models.get_model(config.MODEL_NAME)
 
     if config.V_LEVEL == 'L3':
         x_train, x_val, y_train, y_val = loaders.get_data_l3()
     elif config.V_LEVEL == 'T12':
         x_train, x_val, y_train, y_val = loaders.get_data_t12()
-        # załadowanie wag jeżeli pretrenowany
+        model.load_weights(os.path.join(config.CHECKPOINT_PATH, '', 'model')) # TODO: dodać najlepszy subdir
 
     gen_train = generator.DataGenerator(x_train, y_train, 
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)

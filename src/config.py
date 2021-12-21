@@ -23,8 +23,7 @@ LOSS = 'BCE'
 BATCH_SIZE = 8
 ANYWHERE_RATE = 1 # 0.5 -> 1.0; prawdopodobieństwo, że wycinek może nie zawierać kręgu
 OPTIMIZER = 'adam'
-NUM_EPOCHS = 50
-USE_PRETRAINED = False
+NUM_EPOCHS = 80
 
 # inference
 THRESHOLD = 0.5
