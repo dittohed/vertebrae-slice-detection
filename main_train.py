@@ -1,9 +1,7 @@
-from tensorflow.keras import callbacks
 import src.config as config
 import src.generator as generator
 import src.utils as utils
 import src.loaders as loaders
-import src.preprocessing as preprocessing
 import src.models as models
 import src.callbacks as callbacks
 
@@ -26,4 +24,3 @@ if __name__ == '__main__':
                     epochs=config.NUM_EPOCHS, 
                     callbacks=callbacks.get_callbacks(config.EXP_NAME))
     utils.plot_learning(history, config.EXP_NAME)
-    # TODO: określając nazwy dostaję odpowiedni checkpoint, logi i wykresy

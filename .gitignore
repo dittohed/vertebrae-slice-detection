@@ -1,5 +1,6 @@
 data/
 __pycache__
 checkpoints
-workspace.code-workspace
 output/
+.ipynb_checkpoints
+workspace.code-workspace

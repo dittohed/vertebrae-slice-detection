@@ -94,14 +94,13 @@ class DataGenerator(tf.keras.utils.Sequence):
         y_batch = np.array([utils.y_to_onehot(y.keypoints[0].y, self.input_shape) for y in y_batch])
 
         # (optional) saves a visual comparison for debugging
-        # TODO: comment
-        for i, img_idx in enumerate(batch_indices):
-            img = self.x[img_idx]
-            label = self.y[img_idx]
-            aug_img = x_batch[i]
-            aug_label = y_batch[i]
+        # for i, img_idx in enumerate(batch_indices):
+        #     img = self.x[img_idx]
+        #     label = self.y[img_idx]
+        #     aug_img = x_batch[i]
+        #     aug_label = y_batch[i]
 
-            utils.save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx)
+        #     utils.save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx)
 
         # add dummy color channel
         x_batch = np.expand_dims(x_batch, 3)

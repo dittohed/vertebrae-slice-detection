@@ -14,7 +14,7 @@ def get_callbacks(subdir):
     """
 
     es = EarlyStopping(monitor='val_distance', mode='min', 
-                                  patience=10, restore_best_weights=True, verbose=1)
+                                  patience=15, restore_best_weights=True, verbose=1)
     reduce_lr = ReduceLROnPlateau(monitor='val_distance', mode='min', 
                                   factor=0.5, patience=5, verbose=1)
     checkpoint = ModelCheckpoint(monitor='val_distance', mode='min', save_weights_only=True,

@@ -71,7 +71,7 @@ def get_data_l3():
     kanavati_x_train, kanavati_x_val, \
     kanavati_y_train, kanavati_y_val = train_test_split(
        ds_dict['Kanavati']['x'], ds_dict['Kanavati']['y'], 
-       test_size=0.25, 
+       test_size=0.25, shuffle=True,
        random_state=7)
 
     raw_x_train, raw_x_valtest, \
@@ -80,7 +80,7 @@ def get_data_l3():
     raw_thicks_train, raw_thicks_valtest = train_test_split(
        ds_dict['RAW']['x'], ds_dict['RAW']['y'], 
        ds_dict['RAW']['ids'], ds_dict['RAW']['thicks'],
-       test_size=97, 
+       test_size=97, shuffle=True, 
        random_state=7)
 
     raw_x_val, raw_x_test, \
@@ -88,7 +88,7 @@ def get_data_l3():
     raw_ids_val, raw_ids_test, \
     raw_thicks_val, raw_thicks_test = train_test_split(
        raw_x_valtest, raw_y_valtest, raw_ids_valtest, raw_thicks_valtest,
-       test_size=54, 
+       test_size=54, shuffle=True, 
        random_state=7)
 
     verse_x_train, verse_x_valtest, \
@@ -97,7 +97,7 @@ def get_data_l3():
     verse_thicks_train, verse_thicks_valtest = train_test_split(
        ds_dict['VerSe2019']['x'], ds_dict['VerSe2019']['y'], 
        ds_dict['VerSe2019']['ids'], ds_dict['VerSe2019']['thicks'],
-       test_size=82, 
+       test_size=82, shuffle=True, 
        random_state=7)
 
     verse_x_val, verse_x_test, \
@@ -105,7 +105,7 @@ def get_data_l3():
     verse_ids_val, verse_ids_test, \
     verse_thicks_val, verse_thicks_test = train_test_split(
        verse_x_valtest, verse_y_valtest, verse_ids_valtest, verse_thicks_valtest,
-       test_size=46, 
+       test_size=46, shuffle=True, 
        random_state=7)
 
     # merging train, val & test datasets
@@ -161,7 +161,7 @@ def get_data_t12():
     th12_thicks_train, th12_thicks_valtest = train_test_split(
        ds_dict['TH12']['x'], ds_dict['TH12']['y'], 
        ds_dict['TH12']['ids'], ds_dict['TH12']['thicks'],
-       test_size=0.4, 
+       test_size=0.4, shuffle=True, 
        random_state=7)
 
     th12_x_val, th12_x_test, \
@@ -169,7 +169,7 @@ def get_data_t12():
     th12_ids_val, th12_ids_test, \
     th12_thicks_val, th12_thicks_test = train_test_split(
        th12_x_valtest, th12_y_valtest, th12_ids_valtest, th12_thicks_valtest,
-       test_size=0.5, 
+       test_size=0.5, shuffle=True, 
        random_state=7)
 
     raw_x_train, raw_x_valtest, \
@@ -178,7 +178,7 @@ def get_data_t12():
     raw_thicks_train, raw_thicks_valtest = train_test_split(
        ds_dict['RAW']['x'], ds_dict['RAW']['y'], 
        ds_dict['RAW']['ids'], ds_dict['RAW']['thicks'],
-       test_size=0.4, 
+       test_size=0.4, shuffle=True, 
        random_state=7)
 
     raw_x_val, raw_x_test, \
@@ -186,7 +186,7 @@ def get_data_t12():
     raw_ids_val, raw_ids_test, \
     raw_thicks_val, raw_thicks_test = train_test_split(
        raw_x_valtest, raw_y_valtest, raw_ids_valtest, raw_thicks_valtest,
-       test_size=0.5, 
+       test_size=0.5, shuffle=True, 
        random_state=7)
 
     verse_x_train, verse_x_valtest, \
@@ -195,7 +195,7 @@ def get_data_t12():
     verse_thicks_train, verse_thicks_valtest = train_test_split(
        ds_dict['VerSe2019']['x'], ds_dict['VerSe2019']['y'], 
        ds_dict['VerSe2019']['ids'], ds_dict['VerSe2019']['thicks'],
-       test_size=0.4, 
+       test_size=0.4, shuffle=True, 
        random_state=7)
 
     verse_x_val, verse_x_test, \
@@ -203,7 +203,7 @@ def get_data_t12():
     verse_ids_val, verse_ids_test, \
     verse_thicks_val, verse_thicks_test = train_test_split(
        verse_x_valtest, verse_y_valtest, verse_ids_valtest, verse_thicks_valtest,
-       test_size=0.5, 
+       test_size=0.5, shuffle=True, 
        random_state=7)
 
     # merging train, val & test datasets
