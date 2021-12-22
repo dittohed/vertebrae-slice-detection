@@ -60,7 +60,7 @@ def get_data_l3():
     """
     Kanavati: 1006 (754-252-0)
     RAW: 140 (43-43-54)
-    VerSe2019: 118 (36-36-46)
+    VerSe2019: 123 (38-39-46)
     """
     
     # loading
@@ -97,7 +97,7 @@ def get_data_l3():
     verse_thicks_train, verse_thicks_valtest = train_test_split(
        ds_dict['VerSe2019']['x'], ds_dict['VerSe2019']['y'], 
        ds_dict['VerSe2019']['ids'], ds_dict['VerSe2019']['thicks'],
-       test_size=82, shuffle=True, 
+       test_size=85, shuffle=True, 
        random_state=7)
 
     verse_x_val, verse_x_test, \
@@ -145,9 +145,9 @@ def get_data_l3():
 
 def get_data_t12():
     """
-    TH12: 109 (65-22-22)
-    RAW: 138 (82-28-28)
-    VerSe2019: 97 (58-19-20)
+    TH12: 107 (60%-20%-20%)
+    RAW: 138 (60%-20%-20%)
+    VerSe2019: 105 (60%-20%-20%)
     """
 
     # loading

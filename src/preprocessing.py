@@ -103,7 +103,7 @@ def get_augmentation_sequence():
                                       iaa.CoarseSaltAndPepper(p=0.2, size_percent=0.01),
                                       iaa.CoarseSalt(p=0.2, size_percent=0.02)
                                       ])),
-        iaa.Sometimes(0.4, slice_thickness_augmenter) # changed 0.25 to 0.4
+        iaa.Sometimes(0.5, slice_thickness_augmenter) # changed 0.25 to 0.5
     ])
 
     return aug_seq

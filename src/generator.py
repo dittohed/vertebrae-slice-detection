@@ -39,7 +39,6 @@ class DataGenerator(tf.keras.utils.Sequence):
             label = self.y[i]
 
             if img.shape[0] < self.input_shape[0] or img.shape[1] < self.input_shape[1]:
-                print(f'Doing padding for {img.shape}.')
                 self.x[i], self.y[i] = preprocessing.pad_img(img, label, self.input_shape)
 
     def __len__(self):
