@@ -82,7 +82,7 @@ def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
     plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
     plt.close()
 
-def prepare_for_inference(x, y):
+def prepare_for_inference(x, y, to_32=False):
     """
     Prepares data for model's inference 
     (same as training data generator processing).
@@ -95,11 +95,15 @@ def prepare_for_inference(x, y):
         # both width and height should be dividible by 32 (maxpooling and concats)
         # and not less than training crops size
 
-        new_height = int(
-            max(np.ceil((x[i].shape[0] / 32)) * 32, config.INPUT_SHAPE[0]))
-        new_width = int(
-            max(np.ceil((x[i].shape[1] / 32)) * 32, config.INPUT_SHAPE[1]))
-        x[i], y[i] = preprocessing.pad_img(x[i], y[i], (new_height, new_width))
+        if to_32:
+            new_height = int(
+                max(np.ceil((x[i].shape[0] / 32)) * 32, config.INPUT_SHAPE[0]))
+            new_width = int(
+                max(np.ceil((x[i].shape[1] / 32)) * 32, config.INPUT_SHAPE[1]))
+            x[i], y[i] = preprocessing.pad_img(x[i], y[i], (new_height, new_width))
+        else:
+            if x[i].shape[0] < config.INPUT_SHAPE[0] or x[i].shape[1] < config.INPUT_SHAPE[1]:
+                x[i], y[i] = preprocessing.pad_img(x[i], y[i], config.INPUT_SHAPE)
 
         # add dummy color channel
         x[i] = np.expand_dims(x[i], 2).astype(np.float32)

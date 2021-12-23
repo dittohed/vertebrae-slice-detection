@@ -118,7 +118,6 @@ class DataGenerator(tf.keras.utils.Sequence):
         if self.shuffle and not self.validation:
             np.random.shuffle(self.indices)
 
-# TODO: remove
 class InferenceDataGenerator(tf.keras.utils.Sequence):
     """
     Returns batches of single images of varying size. 
