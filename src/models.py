@@ -335,7 +335,7 @@ def get_model(model_name):
         model = get_model_own()
 
     loss = 'binary_crossentropy' if config.LOSS == 'BCE' else SigmoidFocalCrossEntropy()
-    model.compile(optimizer=config.OPTIMIZER, loss=loss, 
+    model.compile(optimizer=Adam(config.LR), loss=loss, 
                 metrics=[metrics.distance, metrics.pos_conf, metrics.neg_conf])
     return model
 

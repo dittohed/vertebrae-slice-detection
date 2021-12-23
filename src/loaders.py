@@ -234,17 +234,3 @@ def get_data_t12():
                     ids=ids_test, thicks=thicks_test)
 
     return x_train, x_val, y_train, y_val
-
-def get_data_kanavati():
-    # loading
-    ds_names = ['Kanavati']
-    ds_dict = get_ds_dict(ds_names, 'L3') 
-
-    # train-val-test split
-    x_train, x_val, \
-    y_train, y_val = train_test_split(
-       ds_dict['Kanavati']['x'], ds_dict['Kanavati']['y'], 
-       test_size=0.25, shuffle=True,
-       random_state=7)
-
-    return x_train, x_val, y_train, y_val
