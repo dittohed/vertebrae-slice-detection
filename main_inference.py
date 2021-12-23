@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 import src.config as config
-import generators as generators
+import src.generators as generators
 import src.utils as utils
 import src.loaders as loaders
 import src.models as models

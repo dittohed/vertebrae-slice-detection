@@ -6,15 +6,15 @@ BatchNormalization, Activation, LeakyReLU, \
 add, Layer, Input, InputSpec, concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.applications import EfficientNetB7
+from tensorflow.keras.applications import EfficientNetB3
 from tensorflow_addons.losses import SigmoidFocalCrossEntropy
 from tensorflow.keras import backend as K
 import numpy as np
 
-# import config
-# import metrics
-from . import config
-from . import metrics
+import config
+import metrics
+# from . import config
+# from . import metrics
 
 def down_block(input_tensor, n_filters, k_size=3, n_conv=2, 
               use_maxpool=True, pool_size=2, leaky_relu=False, bn_momentum=0.99):
@@ -156,32 +156,32 @@ def get_model_eff():
     """
     Coś tam mam, ale najlepiej byłoby dobrać wersję, która będzie mieć najbardziej zbliżony shape.
     https://keras.io/examples/vision/image_classification_efficientnet_fine_tuning/
+    Each layer is trainable only if both the layer itself and the model containing it are trainable.
     """
 
     inputs = Input(shape=(None, None, 3))
-    from tensorflow.keras.applications import EfficientNetB3
-    # backbone = EfficientNetB3(weights='imagenet', include_top=False, input_tensor=inputs)
-    backbone = EfficientNetB7(weights='imagenet', include_top=False, input_tensor=inputs)
-    # for layer in backbone.layers:
-    #     if isinstance(layer, BatchNormalization):
-    #         layer.trainable = False
-    backbone.summary()
 
-    # B3
-    # block1 = backbone.get_layer('block1b_add').output # 128x192
-    # block2 = backbone.get_layer('block2c_add').output # 64x96
-    # block3 = backbone.get_layer('block3c_add').output # 32x48
-    # block4 = backbone.get_layer('block4e_add').output # 16x24
-    # block5 = backbone.get_layer('block5e_add').output # 16x24, not used in connections
-    # block6 = backbone.get_layer('block6f_add').output # 8x12
+    if config.USE_IMAGENET:
+        # freeze first block (freezing all BN layers also)
+        backbone = EfficientNetB3(weights='imagenet', include_top=False, input_tensor=inputs)
+        backbone.trainable = True
+        for layer in backbone.layers:
+            if isinstance(layer, layer.BatchNormalization):
+                layer.trainable = False
+            else:
+                layer.trainable = True
+        for layer in backbone.layers[:29]:
+            layer.trainable = False
+    else:
+        # train from scratch
+        backbone = EfficientNetB3(weights=None, include_top=False, input_tensor=inputs)    
 
-    # B7
-    block1 = backbone.get_layer('block1d_add').output # 128x192
-    block2 = backbone.get_layer('block2g_add').output # 64x96
-    block3 = backbone.get_layer('block3g_add').output # 32x48
-    block4 = backbone.get_layer('block4j_add').output # 16x24
-    block5 = backbone.get_layer('block5j_add').output # 16x24, not used in connections
-    block6 = backbone.get_layer('block6m_add').output # 8x12
+    block1 = backbone.get_layer('block1b_add').output # 128x192
+    block2 = backbone.get_layer('block2c_add').output # 64x96
+    block3 = backbone.get_layer('block3c_add').output # 32x48
+    block4 = backbone.get_layer('block4e_add').output # 16x24
+    block5 = backbone.get_layer('block5e_add').output # 16x24, not used in connections
+    block6 = backbone.get_layer('block6f_add').output # 8x12
 
     conv_mid = GlobalMaxHorizontalPooling2D()(block6)
 
@@ -340,4 +340,4 @@ def get_model(model_name):
     return model
 
 if __name__ == '__main__':
-    get_model('Efficient').summary()
+    get_model('Efficient')

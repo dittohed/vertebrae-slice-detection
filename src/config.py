@@ -4,6 +4,7 @@ import os
 EXP_NAME = 'kanavati_l3_sagittal_bce_1' # TODO: set
 LOSS = 'BCE' # 'BCE' or 'Focal'
 MODEL_NAME = 'Kanavati' # 'Kanavati' or 'Efficient' or 'Own'
+USE_IMAGENET = False
 INPUT_SHAPE = (256, 384, 1)
 BATCH_SIZE = 8
 ANYWHERE_RATE = 1 # 0.5 -> 1.0; prawdopodobieństwo, że wycinek może nie zawierać kręgu
