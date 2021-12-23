@@ -12,7 +12,7 @@ NUM_EPOCHS = 80
 
 # image processing
 V_LEVEL = 'L3'
-USE_FRONT = False
+USE_FRONT = True
 RGB = False # whether to triple gray channel (for EFficientNet)
 USE_OVERSAMPLING = False
 HU_LOWER = 100

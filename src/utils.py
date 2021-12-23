@@ -84,9 +84,10 @@ def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
 
 def prepare_for_inference(x, y):
     """
-    Prepares data for model's inference (same as training data processing).
+    Prepares data for model's inference 
+    (same as training data generator processing).
     Takes 2D images and integer labels,
-    returns 3D images and one-hot labels (with dummy color channel).
+    returns 3D (with dummy color channel) images and one-hot labels.
     """
 
     y_new = []

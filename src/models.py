@@ -251,7 +251,7 @@ def predict_whole(model, x, step_size=32):
         #     crops.append(img[y_upper : y_upper + config.INPUT_SHAPE[0], x_left : x_right])
 
         # so that crop are centered     
-        x_center = img.shape[1] // 2 # TODO: środkować według krzywizny kręgosłupa
+        x_center = img.shape[1] // 2 
         x_left = x_center - config.INPUT_SHAPE[1] // 2
         x_right = x_center + config.INPUT_SHAPE[1] // 2
 
