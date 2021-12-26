@@ -11,10 +11,10 @@ from tensorflow_addons.losses import SigmoidFocalCrossEntropy
 from tensorflow.keras import backend as K
 import numpy as np
 
-import config
-import metrics
-# from . import config
-# from . import metrics
+# import config
+# import metrics
+from . import config
+from . import metrics
 
 def down_block(input_tensor, n_filters, k_size=3, n_conv=2, 
               use_maxpool=True, pool_size=2, leaky_relu=False, bn_momentum=0.99):

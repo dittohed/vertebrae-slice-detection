@@ -234,3 +234,11 @@ def get_data_t12():
                     ids=ids_test, thicks=thicks_test)
 
     return x_train, x_val, y_train, y_val
+
+def get_test_data(ds_name):
+    """
+    """
+
+    data = np.load(os.path.join(config.DATA_PATH, ds_name), allow_pickle=True)
+
+    return data['x'], data['y'], data['ids'], data['thicks']

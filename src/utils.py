@@ -143,28 +143,12 @@ def plot_learning(history, plot_name):
     plt.savefig(os.path.join(config.FIGURES_PATH, f'{plot_name}.png'))
     plt.close()
 
-def median(model, x, y_true):
+def median(y_true, y_pred):
     """
-    Calculates and returns median of error 
-    given trained model and instance of InferenceDataGenerator.
+    Returns a median of absolute distances between real value labels.
     """
 
-    # doing loops below due to different img sizes
-
-    y_pred = []
-    for img in x:
-        y_pred.append(
-          np.argmax(model.predict(np.expand_dims(img, axis=0)), axis=1))
-    y_pred = np.array(y_pred).flatten()
-
-    y_true = []
-    for label in y:
-      y_true.append(
-        np.argmax(label, axis=0)
-      )
-    y_true = np.array(y_true).flatten()
-
-    errors = np.abs(y_pred-y_true)
+    errors = np.abs(y_true-y_pred)
     return np.median(errors)
 
 def save_imgs_dist(imgs, title):

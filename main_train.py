@@ -16,7 +16,8 @@ if __name__ == '__main__':
         x_train, x_val, y_train, y_val = loaders.get_data_l3()
     elif config.V_LEVEL == 'T12':
         x_train, x_val, y_train, y_val = loaders.get_data_t12()
-        model.load_weights(os.path.join(config.CHECKPOINT_PATH, '', 'model')) # TODO: dodać najlepszy subdir
+        model.load_weights(os.path.join(config.CHECKPOINT_PATH, 
+                        'kanavati_l3_sagittal_bce_oversamp_2', 'model'))
 
     gen_train = generators.DataGenerator(x_train, y_train, 
                             input_shape=config.INPUT_SHAPE, batch_size=config.BATCH_SIZE, rgb=config.RGB)
