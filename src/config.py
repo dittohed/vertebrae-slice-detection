@@ -15,7 +15,6 @@ NUM_EPOCHS = 80
 V_LEVEL = 'L3'
 USE_FRONT = False
 RGB = False # whether to triple gray channel (for EFficientNet)
-USE_OVERSAMPLING = False
 HU_LOWER = 100
 HU_UPPER = 1500
 

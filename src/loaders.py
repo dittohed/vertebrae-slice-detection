@@ -55,75 +55,42 @@ def get_ds_dict(ds_names, v_level):
     return ds_dict
 
 def get_data_l3():
-    # cel: 100 próbek w zbiorze testowym
-    # TODO: opis i ew. później włączyć HNSCC
     """
-    Kanavati: 1006 (754-252-0)
-    RAW: 140 (43-43-54)
-    VerSe2019: 123 (38-39-46)
+    Kanavati: 1006 (100%-0-0)
+    RAW: 140 (0-50%-50%)
+    VerSe2019: 123 (0-50%-50%)
     """
     
     # loading
     ds_names = ['Kanavati', 'RAW', 'VerSe2019'] # datasets
     ds_dict = get_ds_dict(ds_names, 'L3') 
 
-    # train-val-test splits
-    kanavati_x_train, kanavati_x_val, \
-    kanavati_y_train, kanavati_y_val = train_test_split(
-       ds_dict['Kanavati']['x'], ds_dict['Kanavati']['y'], 
-       test_size=0.25, shuffle=True,
-       random_state=7)
-
-    raw_x_train, raw_x_valtest, \
-    raw_y_train, raw_y_valtest, \
-    raw_ids_train, raw_ids_valtest, \
-    raw_thicks_train, raw_thicks_valtest = train_test_split(
-       ds_dict['RAW']['x'], ds_dict['RAW']['y'], 
-       ds_dict['RAW']['ids'], ds_dict['RAW']['thicks'],
-       test_size=97, shuffle=True, 
-       random_state=7)
+    kanavati_x_train = ds_dict['Kanavati']['x']
+    kanavati_y_train = ds_dict['Kanavati']['y']
 
     raw_x_val, raw_x_test, \
     raw_y_val, raw_y_test, \
     raw_ids_val, raw_ids_test, \
     raw_thicks_val, raw_thicks_test = train_test_split(
-       raw_x_valtest, raw_y_valtest, raw_ids_valtest, raw_thicks_valtest,
-       test_size=54, shuffle=True, 
-       random_state=7)
-
-    verse_x_train, verse_x_valtest, \
-    verse_y_train, verse_y_valtest, \
-    verse_ids_train, verse_ids_valtest, \
-    verse_thicks_train, verse_thicks_valtest = train_test_split(
-       ds_dict['VerSe2019']['x'], ds_dict['VerSe2019']['y'], 
-       ds_dict['VerSe2019']['ids'], ds_dict['VerSe2019']['thicks'],
-       test_size=85, shuffle=True, 
+       ds_dict['RAW']['x'], ds_dict['RAW']['y'], 
+       ds_dict['RAW']['ids'], ds_dict['RAW']['thicks'],
+       test_size=0.5, shuffle=True, 
        random_state=7)
 
     verse_x_val, verse_x_test, \
     verse_y_val, verse_y_test, \
     verse_ids_val, verse_ids_test, \
     verse_thicks_val, verse_thicks_test = train_test_split(
-       verse_x_valtest, verse_y_valtest, verse_ids_valtest, verse_thicks_valtest,
-       test_size=46, shuffle=True, 
+       ds_dict['VerSe2019']['x'], ds_dict['VerSe2019']['y'], 
+       ds_dict['VerSe2019']['ids'], ds_dict['VerSe2019']['thicks'],
+       test_size=0.5, shuffle=True, 
        random_state=7)
 
-    # merging train, val & test datasets
-    if config.USE_OVERSAMPLING:
-        x_train = np.concatenate(
-            [kanavati_x_train, raw_x_train, raw_x_train, verse_x_train, verse_x_train])
-        y_train = np.concatenate(
-            [kanavati_y_train, raw_y_train, raw_y_train, verse_y_train, verse_y_train])
-    else:
-        x_train = np.concatenate(
-            [kanavati_x_train, raw_x_train, verse_x_train])
-        y_train = np.concatenate(
-            [kanavati_y_train, raw_y_train, verse_y_train])
-    
+    # merging val & test datasets   
     x_val = np.concatenate(
-        [kanavati_x_val, raw_x_val, verse_x_val])
+        [raw_x_val, verse_x_val])
     y_val = np.concatenate(
-        [kanavati_y_val, raw_y_val, verse_y_val])
+        [raw_y_val, verse_y_val])
 
     # preserving more information for test set 
     # (ultimate goal is to return a slice number for given examination)
@@ -141,7 +108,7 @@ def get_data_l3():
     np.savez_compressed(os.path.join(config.DATA_PATH, f'test_l3_{suffix}.npz'), x=x_test, y=y_test,
                     ids=ids_test, thicks=thicks_test)
 
-    return x_train, x_val, y_train, y_val
+    return kanavati_x_train, x_val, kanavati_y_train, y_val
 
 def get_data_t12():
     """
