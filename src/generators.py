@@ -2,19 +2,17 @@ import tensorflow as tf
 import numpy as np
 
 from . import preprocessing
-from . import config
 from . import utils
 
 class DataGenerator(tf.keras.utils.Sequence):
     """
-    Generates batches of images and labels. 
+    Generates batches of images crops and corresponding labels. 
     Uses different augmentation techniques.
     """
 
     def __init__(self, x, y,  validation=False, input_shape=[256, 256, 1],
                 batch_size=8, shuffle=True, rgb=False):
         """
-        * imgs_per_batch - number of original images to use when generating batch with augmentation;
         * shuffle - whether to reshuffle data on epoch start;
         * rgb - whether to triple gray channel.
         """
@@ -62,8 +60,7 @@ class DataGenerator(tf.keras.utils.Sequence):
     def __gen_batch(self, batch_indices):
         """
         Returns a generated batch given images indices.
-        Originally it used n images to generate m*n images via augmentation.
-        Now it uses n images to generate n images via augmentation.
+        Uses n images to generate n images crops (with augmentation when training).
         """       
 
         x_batch = np.zeros((len(batch_indices), self.input_shape[0], self.input_shape[1]))
@@ -121,11 +118,15 @@ class DataGenerator(tf.keras.utils.Sequence):
 class InferenceDataGenerator(tf.keras.utils.Sequence):
     """
     Returns batches of single images of varying size. 
-    Used to being able to predict for images of any size.
+    Used for being able to perform validation for images of any size.
     """
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, shuffle=False):
         self.x, self.y = x, y
+        self.shuffle = shuffle
+
+        if self.shuffle:
+            self.reshuffle()
 
     def __len__(self):
         """
@@ -140,3 +141,12 @@ class InferenceDataGenerator(tf.keras.utils.Sequence):
         """
 
         return np.expand_dims(self.x[index], axis=0), np.expand_dims(self.y[index], axis=0)
+
+    def on_epoch_end(self):
+        if self.shuffle:
+            self.reshuffle()	
+
+    def reshuffle(self):
+        p = np.random.permutation(self.x.shape[0])
+        self.x = self.x[p]
+        self.y = self.y[p]

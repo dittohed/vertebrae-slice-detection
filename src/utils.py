@@ -1,10 +1,7 @@
 import os
 
-from sklearn.model_selection import ShuffleSplit
-
 import numpy as np
 import pandas as pd
-import cv2
 import matplotlib.pyplot as plt
 import imgaug as ia
 
@@ -35,7 +32,6 @@ def y_to_onehot(y, input_shape):
 
     return y_onehot
 
-# TODO; opis
 def save_orig_crop_comparison(img, label, crop_img, crop_label, img_idx):
     _, axs = plt.subplots(1, 2, figsize=(20, 20))
     for ax in axs:
@@ -58,7 +54,6 @@ def save_orig_crop_comparison(img, label, crop_img, crop_label, img_idx):
     plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
     plt.close()
 
-# TODO; opis
 def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
     fig, axs = plt.subplots(1, 2, figsize=(20, 20))
     for ax in axs:
@@ -82,7 +77,7 @@ def save_orig_aug_comparison(img, label, aug_img, aug_label, img_idx):
     plt.savefig(os.path.join(config.OUTPUT_PATH, f'{img_idx}.png'))
     plt.close()
 
-def prepare_for_inference(x, y, to_32=False):
+def prepare_for_inference(x, y=None, to_32=False):
     """
     Prepares data for model's inference 
     (same as training data generator processing).
@@ -92,7 +87,7 @@ def prepare_for_inference(x, y, to_32=False):
 
     y_new = []
     for i in range(x.shape[0]):
-        # both width and height should be dividible by 32 (maxpooling and concats)
+        # both width and height should be divisible by 32 (maxpooling and concats)
         # and not less than training crops size
 
         if to_32:
@@ -110,6 +105,10 @@ def prepare_for_inference(x, y, to_32=False):
         y_new.append(
             np.expand_dims(y_to_onehot(y[i], x[i].shape), 1)
         )
+
+        # grayscale to RGB
+        if config.RGB:
+            x[i] = np.repeat(x[i], 3, axis=-1)
 
     # pixel values to [-1, 1]
     x = (x / 255) * 2 - 1
@@ -143,12 +142,15 @@ def plot_learning(history, plot_name):
     plt.savefig(os.path.join(config.FIGURES_PATH, f'{plot_name}.png'))
     plt.close()
 
-def median(y_true, y_pred):
+def median(y_true, y_pred, in_crops=False, thicks=None):
     """
-    Returns a median of absolute distances between real value labels.
+    Returns a median of distances between real value labels.
     """
-
+        
     errors = np.abs(y_true-y_pred)
+    if in_crops:
+        errors = errors / thicks     
+
     return np.median(errors)
 
 def save_imgs_dist(imgs, title):
@@ -176,31 +178,13 @@ def save_imgs_dist(imgs, title):
     plt.savefig(os.path.join(config.FIGURES_PATH, f'{title}.png'))
     plt.close()
 
-def mm_to_slices(y_pred, spacings, heights):
+def distance(y_true, y_pred, in_crops=False, thicks=None):
     """
-    Converts one-hot (milimeters) predictions to CT slice numbers.
-    """
-
-    y_pred = np.argmax(y_pred, axis=1)
-    slices_pred = []
-    for i, y in enumerate(y_pred):
-        slices_pred.append(
-            int(min(np.round(y/spacings[i][2]), heights[i]))
-        )
-
-    return slices_pred
-
-def distance(y_true, y_pred):
-    """
-    Returns a mean absolute distance between real value labels.
+    Returns a mean distance between real value labels along with std.
     """
 
-    accum = 0
-    n_preds = 0
+    errors = np.abs(y_true-y_pred)
+    if in_crops:
+        errors = errors / thicks
 
-    for i in range(y_pred.shape[0]):
-        if y_pred[i] != -1: # no prediction
-            accum += abs(y_true[i]-y_pred[i])
-            n_preds += 1
-
-    return accum / n_preds
+    return np.mean(errors), np.std(errors)

@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import cv2
 
 from sklearn.model_selection import train_test_split
 
@@ -7,6 +8,10 @@ from . import config
 from . import preprocessing
 
 def get_ds_dict(ds_names, v_level):
+    """
+    For joining datasets used in thesis.
+    """
+
     ds_dict = {}
 
     for ds_name in ds_names:
@@ -204,8 +209,48 @@ def get_data_t12():
 
 def get_test_data(ds_name):
     """
+    Reads .npz archive with test data.
     """
 
     data = np.load(os.path.join(config.DATA_PATH, ds_name), allow_pickle=True)
 
     return data['x'], data['y'], data['ids'], data['thicks']
+
+def get_inference_data():
+    """
+    Reads .npz archive and preprocesses arrays for inference.
+    """
+
+    data = np.load(os.path.join(config.DATA_PATH, config.INF_DS_NAME), allow_pickle=True)
+    x, ids, thicks = data['x'], data['ids'], data['thicks']
+
+    # padding (same as utils.prepare_for_inference(), but with no y)
+    for i in range(x.shape[0]):
+
+        # comment line below for testing inference on test_*_frontal.npz files
+        x[i] = preprocessing.reduce_hu_scale(x[i]) # HU to [0, 255] with thresholding
+
+        # both width and height should be divisible by 32 (maxpooling and concats)
+        # and not less than training crops size
+
+        new_height = int(
+            max(np.ceil((x[i].shape[0] / 32)) * 32, config.INPUT_SHAPE[0]))
+        new_width = int(
+            max(np.ceil((x[i].shape[1] / 32)) * 32, config.INPUT_SHAPE[1]))
+
+        h_diff = max(0, new_height-x[i].shape[0])
+        w_diff = max(0, new_width-x[i].shape[1])
+
+        h_pads = (h_diff//2, h_diff//2 + 1) if h_diff % 2 else (h_diff/2, h_diff/2)
+        w_pads = (w_diff//2, w_diff//2 + 1) if w_diff % 2 else (w_diff/2, w_diff/2)
+
+        x[i] = cv2.copyMakeBorder(x[i], int(h_pads[0]), int(h_pads[1]), int(w_pads[0]), int(w_pads[1]),
+                                    borderType=cv2.BORDER_CONSTANT, value=0)
+
+        # add dummy color channel
+        x[i] = np.expand_dims(x[i], 2).astype(np.float32)
+
+    # pixel values to [-1, 1]
+    x = (x / 255) * 2 - 1
+
+    return x, ids, thicks

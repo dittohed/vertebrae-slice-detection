@@ -17,11 +17,8 @@ def reduce_hu_scale(img):
     return img.astype(np.float32)
 
 def pad_img(img, label, input_shape):
-    # TODO: uwaga, wcześniej nie brałem pod uwagę
-    # że padding wysokości ma wpływ na zmianę labela!
-    # Wywoływałem też tę metodę za każdym razem w generatorze.
     """
-    Pads image with 0 to match given input_shape.
+    Pads image with 0 to match given input_shape (influences label as well).
     """
 
     h_diff = max(0, input_shape[0]-img.shape[0])
@@ -60,7 +57,7 @@ def get_random_crop(img, label, input_shape):
 
     return crop_img, crop_label
 
-# TODO: ogarnąć
+# sarcopenia-ai code below
 def augment_slice_thickness(img, max_r=5):
     r = np.random.randint(1, max_r+1)
     return np.expand_dims(cv2.resize(img[::r], img.shape[:2][::-1]), 2)
@@ -83,27 +80,26 @@ def get_augmentation_sequence():
     """
 
     slice_thickness_augmenter = iaa.Lambda(
-    func_images=func_images, # funkcja wywoływana dla każdego batcha obrazów
-    func_keypoints=func_keypoints) # funkcja wywoływana dla każdego batcha etykiet)
+    func_images=func_images,
+    func_keypoints=func_keypoints)
 
     aug_seq = iaa.Sequential([
         iaa.Sometimes(0.5, iaa.Fliplr(0.5)), # horizontal flip
         iaa.Sometimes(0.2, iaa.Add((-70, 70))), # adding to pixel values, changed 0.1 to 0.2
         iaa.Sometimes(0.5, iaa.Affine(
             scale={'x': (0.8, 1.2), 'y': (0.8, 1.2)} 
-        )), # skaluje obrazy do 80-120% wymiaru, niezależnie dla wymiarów
+        )), # scales images to 80-120%, indepedently for each dimension 
         iaa.Sometimes(0.5, iaa.PiecewiseAffine(scale=(0.01, 0.01))), 
-        # skaluje obrazy lokalnie o mały procent (zniekształcenia)
-        # 2 poniższe są najbardziej agresywne i tworzą różne artefakty
+        # local distortions
         iaa.Sometimes(0.1,
                       iaa.BlendAlphaSimplexNoise(iaa.OneOf(
-                          # nakłada przetworzony obraz na oryginalny obraz maskując przetworzony blobami
+                          # overlays processed image on original image while masking with blobs
                           [iaa.Add((150, 255)), iaa.Add((-100, 100))]), sigmoid_thresh=5)),
         iaa.Sometimes(0.1, iaa.OneOf([iaa.CoarseDropout((0.01, 0.15), size_percent=(0.02, 0.08)),
                                       iaa.CoarseSaltAndPepper(p=0.2, size_percent=0.01),
                                       iaa.CoarseSalt(p=0.2, size_percent=0.02)
                                       ])),
-        iaa.Sometimes(0.5, slice_thickness_augmenter) # changed 0.25 to 0.5
+        iaa.Sometimes(0.5, slice_thickness_augmenter)
     ])
 
     return aug_seq

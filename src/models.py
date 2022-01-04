@@ -1,9 +1,9 @@
 import os
 
-from tensorflow.keras.layers import Conv1D, SeparableConv2D, Conv2D, \
+from tensorflow.keras.layers import Conv1D, Conv2D, \
 UpSampling1D, Conv1DTranspose, MaxPooling2D, Dropout, \
 BatchNormalization, Activation, LeakyReLU, \
-add, Layer, Input, InputSpec, concatenate
+Layer, Input, InputSpec, concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.applications import EfficientNetB3
@@ -11,8 +11,6 @@ from tensorflow_addons.losses import SigmoidFocalCrossEntropy
 from tensorflow.keras import backend as K
 import numpy as np
 
-# import config
-# import metrics
 from . import config
 from . import metrics
 
@@ -24,11 +22,11 @@ def down_block(input_tensor, n_filters, k_size=3, n_conv=2,
     """
 
     down = input_tensor
-    for _ in range(n_conv):
+    for i in range(n_conv):
         down = Conv2D(n_filters, k_size, padding='same')(down)
         down = BatchNormalization(momentum=bn_momentum)(down) # Kanavati et al. use non-standard momentum
         if leaky_relu:
-            down = LeakyReLU(1e-2)(down)
+            down = LeakyReLU(0.05)(down)
         else:
             down = Activation('relu')(down)
 
@@ -38,7 +36,7 @@ def down_block(input_tensor, n_filters, k_size=3, n_conv=2,
         pool = Conv2D(n_filters, k_size, strides=pool_size, padding='same')(down)
         pool = BatchNormalization(momentum=bn_momentum)(pool)
         if leaky_relu:
-            pool = LeakyReLU(1e-2)(pool)
+            pool = LeakyReLU(0.05)(pool)
         else:
             pool = Activation('relu')(pool)
 
@@ -68,7 +66,7 @@ def up_block(input_tensor1, input_tensor2, n_filters, k_size=3, n_conv=2,
         up = Conv1D(n_filters, k_size, padding='same')(up)
         up = BatchNormalization(momentum=bn_momentum)(up)
         if leaky_relu:
-            up = LeakyReLU(1e-2)(up)
+            up = LeakyReLU(0.05)(up)
         else:
             up = Activation('relu')(up)
 
@@ -109,10 +107,7 @@ class GlobalMaxHorizontalPooling2D(_GlobalHorizontalPooling2D):
 
 def get_model_kanavati():
     """
-    Definiuje model odpowiadający CNNLine z repozytorium (apps/slice_detection/models.py).
-    Są małe niezgodności z pracą (dodatkowa konwolucja x1 przy pod koniec bloku przy wchodzeniu do góry
-    oraz liczba filtrów w przedostatniej warstwie modelu).
-    Niemniej jednak, liczba parametrów zgadza się z tą podaną w  pracy!
+    Kanavati's model reimplementation (as CNNLine in sarcopenia-ai/apps/slice_detecion/models.py).
     """
 
     input_shape = (None, None, 1)
@@ -131,21 +126,25 @@ def get_model_kanavati():
     up1 = Conv1D(256, 1, padding='same')(up1)
     up1 = BatchNormalization(momentum=0.8)(up1)
     up1 = Activation('relu')(up1)
+    # up1 = LeakyReLU(0.05)(up1)
 
     up2 = up_block(up1, down3, 128, use_transpose=False, bn_momentum=0.8)
     up2 = Conv1D(128, 1, padding='same')(up2)
     up2 = BatchNormalization(momentum=0.8)(up2)
     up2 = Activation('relu')(up2)
+    # up2 = LeakyReLU(0.05)(up2)
 
     up3 = up_block(up2, down2, 128, use_transpose=False, bn_momentum=0.8)
     up3 = Conv1D(128, 1, padding='same')(up3)
     up3 = BatchNormalization(momentum=0.8)(up3)
     up3 = Activation('relu')(up3)
+    # up3 = LeakyReLU(0.05)(up3)
 
     up4 = up_block(up3, down1, 128, use_transpose=False, bn_momentum=0.8)
     up4 = Conv1D(128, 1, padding='same')(up4)
     up4 = BatchNormalization(momentum=0.8)(up4)
     up4 = Activation('relu')(up4)
+    # up4 = LeakyReLU(0.05)(up4)
 
     outputs = Conv1D(1, 1, activation='sigmoid', padding='same')(up4)
 
@@ -153,12 +152,6 @@ def get_model_kanavati():
     return model
 
 def get_model_eff():
-    """
-    Coś tam mam, ale najlepiej byłoby dobrać wersję, która będzie mieć najbardziej zbliżony shape.
-    https://keras.io/examples/vision/image_classification_efficientnet_fine_tuning/
-    Each layer is trainable only if both the layer itself and the model containing it are trainable.
-    """
-
     inputs = Input(shape=(None, None, 3))
 
     if config.USE_IMAGENET:
@@ -166,7 +159,7 @@ def get_model_eff():
         backbone = EfficientNetB3(weights='imagenet', include_top=False, input_tensor=inputs)
         backbone.trainable = True
         for layer in backbone.layers:
-            if isinstance(layer, layer.BatchNormalization):
+            if isinstance(layer, BatchNormalization):
                 layer.trainable = False
             else:
                 layer.trainable = True
@@ -203,19 +196,15 @@ def get_model_eff():
     return model
 
 def get_model_own():
-    """
-    Model a'la nnU-Net (bez maxpoolingu, instance normalization? i leaky ReLU 1e-2)
-    """
-
     input_shape = (None, None, 1)
     inputs = Input(input_shape)
 
-    down1, pool1 = down_block(inputs, 32, use_maxpool=False, leaky_relu=True)
-    down2, pool2 = down_block(pool1, 64, use_maxpool=False, leaky_relu=True)
-    down3, pool3 = down_block(pool2, 128, use_maxpool=False, leaky_relu=True)
-    down4, pool4 = down_block(pool3, 256, use_maxpool=False, leaky_relu=True)
+    down1, pool1 = down_block(inputs, 32, leaky_relu=True)
+    down2, pool2 = down_block(pool1, 64, leaky_relu=True)
+    down3, pool3 = down_block(pool2, 128, leaky_relu=True)
+    down4, pool4 = down_block(pool3, 256, leaky_relu=True)
 
-    mid, _ = down_block(pool4, 512, use_maxpool=False, leaky_relu=True)
+    mid, _ = down_block(pool4, 512, leaky_relu=True)
     mid = GlobalMaxHorizontalPooling2D()(mid)
 
     up1 = up_block(mid, down4, 256, leaky_relu=True)
@@ -230,8 +219,8 @@ def get_model_own():
 
 def predict_whole(model, x, step_size=32):
     """
-    Predicts vertebrae level for whole-size images by 
-    using non-overlapping, centered crops (windows) of training crops sizes.
+    Predicts vertebrae level for whole-size MIP images by 
+    using overlapping (stride of step_size), centered crops (windows) of training crops sizes.
     Prediction is done for all crops, then predicted vertebrae levels 
     are calculated.
     """
@@ -243,12 +232,6 @@ def predict_whole(model, x, step_size=32):
     for i, img in enumerate(x):
         assert img.shape[0] >= config.INPUT_SHAPE[0]
         assert img.shape[1] >= config.INPUT_SHAPE[1]
-
-        # config.INPUT_SHAPE[0] step-size version
-        # num_crops[i] = int(np.ceil(img.shape[0] / config.INPUT_SHAPE[0]))
-        # for j in range(num_crops[i]):
-        #     y_upper = min(j * config.INPUT_SHAPE[0], img.shape[0] - config.INPUT_SHAPE[0])
-        #     crops.append(img[y_upper : y_upper + config.INPUT_SHAPE[0], x_left : x_right])
 
         # so that crop are centered     
         x_center = img.shape[1] // 2 
@@ -268,8 +251,8 @@ def predict_whole(model, x, step_size=32):
             else:
                 y_upper += step_size
 
-    crops = np.asarray(crops) # TODO: sprawdzić typ
-    y_crops = model.predict(crops) # batch_size = 32 by default
+    crops = np.asarray(crops)
+    y_crops = model.predict(crops)
     
     # import cv2
     # import matplotlib.pyplot as plt
@@ -294,17 +277,15 @@ def predict_whole(model, x, step_size=32):
         r_curr = l_curr + num_crops[key]
         y_group = np.stack(y_crops[l_curr : r_curr]) # predictions associated with single image
         y_group = np.squeeze(y_group) # drop last dummy channel
+        if len(y_group.shape) == 1: # only one crop case
+            y_group = np.expand_dims(y_group, axis=0)
 
         max_prob = np.amax(y_group)
-        if max_prob > 0: # TODO: change to config.THRESHOLD
+        if max_prob > 0: 
             # crop with maximum probability
             max_prob_crop = np.argmax(np.amax(y_group, axis=-1)) 
             # vertebrae level within crop with maximum probability
             max_prob_crop_idx = np.argmax(y_group, axis=-1)[max_prob_crop]
-            
-            # # config.INPUT_SHAPE[0] step-size version
-            # y_pred = min(max_prob_crop * config.INPUT_SHAPE[0], 
-            #             x[key].shape[0] - config.INPUT_SHAPE[0]) + max_prob_crop_idx
 
             # verebrae level within whole image
             y_pred = min(max_prob_crop * step_size, 
@@ -320,7 +301,7 @@ def predict_whole(model, x, step_size=32):
 
 def get_model(model_name):
     """
-    Returns a compiled model, according to given model name.
+    Returns a compiled model, according to given model_name.
     Common conventions used in models' architectures (inspired by sarcopenia-ai):
     - 'same' padding
     - conv + BN + activation scheme
@@ -338,6 +319,3 @@ def get_model(model_name):
     model.compile(optimizer=Adam(config.LR), loss=loss, 
                 metrics=[metrics.distance, metrics.pos_conf, metrics.neg_conf])
     return model
-
-if __name__ == '__main__':
-    get_model('Efficient')
