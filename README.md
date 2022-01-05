@@ -10,11 +10,6 @@ Example of L3 prediction:
 
 ![l3_pred](./figures/l3_pred_example.png)
 
-Errors histograms (on test set, measured in slices):
-
-![hist1](./figures/errors_hist_l3.jpg)
-![hist2](./figures/errors_hist_t12.jpg)
-
 ### How to use (prediction)
 1. Make sure you meet requirements listed below.
 2. Download [models' weights](https://drive.google.com/drive/folders/1Uk0oNfgHfusin24GgE9zn7pfy4zQlq0G?usp=sharing) (one for L3, one for T12).
