@@ -1,8 +1,6 @@
 # Deep learning for spotting T12 and L3 slices in CT scans 
 This repo contains code for my engineering thesis: *The use of deep learning methods to determine characteristic axial cross-sections in the tomographic examination of the abdomen and chest for the diagnosis of metabolic diseases* (originally written in Polish). 
 
-**This README file is going to be updated soon.**
-
 Abstract:
 > The motivation for creation of present thesis is a need to automate determining T12 and L3 slices in 3D CT images. Such slices, being 2D grayscale images, are currently applied, as an example, for examining and diagnosing metabolic diseases, such as diabetes or osteoporosis. In addition, they prove to be helpful in measuring sarcopenia and forecasting digestive system cancers. As part of work, 2 deep learning models with satysfying accuracy on test sets were created - one for spotting L3 slice, with a median error of 0.9 slice (without rounding), second for spotting T12 slice, with a median error of 1 slice. In order to find those models, many experiments were conducted basing on methods already present in literature. The contribution of present thesis is evaluating current methods on larger datasets containing examinations of different kinds and developing a method for more reliable calculation of Maximal Intensity Projection images which constitute compressed, 2D images of skeletons and serve as an input to the models. Moreover, conducted experiments showed that evaluation methods employed in related works did not provide a good estimate, therefore other techniques were suggested. In addition, currently existing models were modified and extended. However, it did not yield better results. The thesis resulted in code for reconducting experiments as well as predicting slices for prepared CT scans. Script for prediction utilizes trained models and returns .csv file with supplied examinations IDs and corresponding predicted T12 or L3 slices numbers.
 
@@ -59,10 +57,7 @@ Example of L3 prediction:
 https://github.com/fk128/sarcopenia-ai 
 
 ### Data
-MIPs used for training, validation and testing are available on [Google Drive](https://drive.google.com/drive/folders/1JK-jXrNCWwMo0KlLgA0QLf0emY6Gg8wd?usp=sharing). 
-
 Original CTs datasets:
 * 1006 CTs from https://github.com/fk128/sarcopenia-ai
 * 160 CTs from https://osf.io/nqjyw/ 
-* 109 + 140 private CTs (to be uploaded)
-
+* 109 + 140 private CTs
